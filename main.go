@@ -16,19 +16,46 @@ import (
 // Contains all visited links
 var visited Set = Set{}
 
-// TODO: feature: test for HTTP 20x from link to ensure it's not a broken link
+var root string
+
 func main() {
-	// handle CLI args
-	var rootUrl string
-	flag.StringVar(&rootUrl, "root", "", "The root URL of the page to test.")
+	// define custom usage message
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(), "\nUsage: linkt [options...] <url>\n\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "Options:\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "    -s, --sitemap\tBuild a sitemap.\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "    -t, --test\t\tTest for broken links.\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "    -v, --version\tShow the version number.\n\n")
+	}
+
+	// setup and parse CLI flags
+	var helpFlag, sitemapFlag, testFlag, versionFlag bool
+	flag.BoolVar(&helpFlag, "help", false, "")
+	flag.BoolVar(&helpFlag, "h", false, "")
+	flag.BoolVar(&sitemapFlag, "sitemap", false, "")
+	flag.BoolVar(&sitemapFlag, "s", false, "")
+	flag.BoolVar(&testFlag, "test", false, "")
+	flag.BoolVar(&testFlag, "t", false, "")
+	flag.BoolVar(&versionFlag, "version", false, "")
+	flag.BoolVar(&versionFlag, "v", false, "")
 	flag.Parse()
 
+	// handle CLI args
+	if len(os.Args) < 2 || helpFlag { // help flag is set
+		flag.Usage()
+		os.Exit(0)
+	}
+	if len(os.Args) == 2 && versionFlag { // versio flag is set
+		fmt.Printf("linkt v0.0.1\n")
+		os.Exit(0)
+	}
+
 	sitemap := NewTree[Page]() // contains the sitemap we are building
-	url, err := url.Parse(rootUrl)
+	url, err := url.Parse(root)
 	if err != nil {
 		slog.Error(
 			"error parsing the root URL",
-			"URL", rootUrl,
+			"URL", root,
 			"error", err,
 		)
 		os.Exit(-1)
