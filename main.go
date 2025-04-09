@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -17,22 +18,32 @@ var visited Set = Set{}
 
 // TODO: feature: test for HTTP 20x from link to ensure it's not a broken link
 func main() {
+	// handle CLI args
+	var rootUrl string
+	flag.StringVar(&rootUrl, "root", "", "The root URL of the page to test.")
+	flag.Parse()
+
 	sitemap := NewTree[Page]() // contains the sitemap we are building
+	url, err := url.Parse(rootUrl)
+	if err != nil {
+		slog.Error(
+			"error parsing the root URL",
+			"URL", rootUrl,
+			"error", err,
+		)
+		os.Exit(-1)
+	}
 	page := Page{
 		Request: &http.Request{
 			Method: http.MethodGet,
-			URL: &url.URL{
-				Scheme: "https",
-				Host:   "me-251369428744.us-central1.run.app",
-				Path:   "/",
-			},
+			URL:    url,
 		},
 		Links:  Set{},
 		Status: Unknown,
 	}
 
 	// add root to sitemap and Set of visited links
-	_, err := sitemap.AddRoot(page)
+	_, err = sitemap.AddRoot(page)
 	if err != nil {
 		slog.Error(
 			"error adding root page to the sitemap",
@@ -122,8 +133,8 @@ func spider(client *http.Client, sitemap *Tree[Page], page *Node[Page]) {
 				Request: &http.Request{
 					Method: http.MethodGet,
 					URL: &url.URL{
-						Scheme: "https",
-						Host:   "me-251369428744.us-central1.run.app",
+						Scheme: sitemap.Root().GetElement().Request.URL.Scheme,
+						Host:   sitemap.Root().GetElement().Request.URL.Host,
 						Path:   p,
 					},
 				},
