@@ -49,7 +49,7 @@ func main() {
 	// call spider to start crawling from the root
 	spider(client, sitemap, sitemap.Root())
 
-	fmt.Println("\nfinished crawling root\n")
+	// print the sitemap
 	printPreorderIndent(sitemap, sitemap.Root(), 0)
 }
 
@@ -169,10 +169,27 @@ func wasVisited(link string) bool {
 	return false
 }
 
-// INFO: for debugging purposes only
+// ANSI color codes
+const (
+	Reset  = "\033[0m"
+	Red    = "\033[31m"
+	Green  = "\033[32m"
+	Yellow = "\033[33m"
+	Blue   = "\033[34m"
+	Purple = "\033[35m"
+	Cyan   = "\033[36m"
+)
+
 func printPreorderIndent(t *Tree[Page], n *Node[Page], d int) {
+	var color string
+	if len(n.Children()) > 0 {
+		color = Cyan
+	} else {
+		color = Purple
+	}
+
 	indent := strings.Repeat(" ", d*4)
-	fmt.Printf("%s%+v\n", indent, n.GetElement().Request.URL.String())
+	fmt.Printf("%s%s%+v%s\n", color, indent, n.GetElement().Request.URL.String(), Reset)
 	for _, c := range n.Children() {
 		printPreorderIndent(t, c, d+1)
 	}
