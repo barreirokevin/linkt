@@ -8,15 +8,9 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"time"
 
 	"golang.org/x/net/html"
 )
-
-// Contains all visited links
-var visited Set = Set{}
-
-var root string
 
 func main() {
 	// define custom usage message
@@ -40,37 +34,63 @@ func main() {
 	flag.BoolVar(&versionFlag, "v", false, "")
 	flag.Parse()
 
-	// handle CLI args
 	if len(os.Args) < 2 || helpFlag { // help flag is set
 		flag.Usage()
 		os.Exit(0)
 	}
-	if len(os.Args) == 2 && versionFlag { // versio flag is set
-		fmt.Printf("linkt v0.0.1\n")
+
+	if len(os.Args) == 2 && versionFlag { // version flag is set
+		fmt.Printf("%slinkt v0.0.1%s\n", Orange, Reset)
 		os.Exit(0)
 	}
 
-	sitemap := NewTree[Page]() // contains the sitemap we are building
-	url, err := url.Parse(root)
-	if err != nil {
-		slog.Error(
-			"error parsing the root URL",
-			"URL", root,
-			"error", err,
-		)
-		os.Exit(-1)
+	var root *url.URL
+	if len(os.Args) == 3 { // verify URL is valid
+		if isValidURL(os.Args[1]) {
+			root, _ = url.Parse(os.Args[1])
+		} else if isValidURL(os.Args[2]) {
+			root, _ = url.Parse(os.Args[2])
+		} else { // invalid URL
+			fmt.Printf("%sInvalid URL%s\n", Red, Reset)
+			os.Exit(0)
+		}
 	}
+
+	if len(os.Args) == 3 && sitemapFlag { // sitemap flag is set
+		sitemap(root) // build sitemap
+		os.Exit(0)
+	}
+
+	if len(os.Args) == 3 && testFlag { // test flag is set
+		// TODO: call test process
+		// TODO: os.Exit(0)
+	}
+}
+
+func isValidURL(value string) bool {
+	url, err := url.Parse(value)
+	if err != nil {
+		return false
+	}
+	if url.Scheme == "" || url.Host == "" {
+		return false
+	}
+	return true
+}
+
+func sitemap(root *url.URL) {
+	visited := &Set{}          // Contains all visited links
+	sitemap := NewTree[Page]() // contains the sitemap we are building
 	page := Page{
 		Request: &http.Request{
 			Method: http.MethodGet,
-			URL:    url,
+			URL:    root,
 		},
 		Links:  Set{},
 		Status: Unknown,
 	}
-
 	// add root to sitemap and Set of visited links
-	_, err = sitemap.AddRoot(page)
+	_, err := sitemap.AddRoot(page)
 	if err != nil {
 		slog.Error(
 			"error adding root page to the sitemap",
@@ -79,21 +99,17 @@ func main() {
 		)
 		os.Exit(-1)
 	}
-	visited[page.Request.URL.String()] = Internal
-
+	(*visited)[page.Request.URL.String()] = Internal
 	// construct http client
 	client := &http.Client{}
-
 	// call spider to start crawling from the root
-	spider(client, sitemap, sitemap.Root())
-
+	spider(client, sitemap, sitemap.Root(), visited)
 	// print the sitemap
 	printPreorderIndent(sitemap, sitemap.Root(), 0)
 }
 
-func spider(client *http.Client, sitemap *Tree[Page], page *Node[Page]) {
+func spider(client *http.Client, sitemap *Tree[Page], page *Node[Page], visited *Set) {
 	// get page
-	time.Sleep(1 * time.Second) // INFO: temporary
 	resp, err := client.Do(page.GetElement().Request)
 	if err != nil {
 		slog.Error(
@@ -129,14 +145,14 @@ func spider(client *http.Client, sitemap *Tree[Page], page *Node[Page]) {
 				if a.Key == "href" { // attribute is an href
 					if strings.HasPrefix(a.Val, "/") { // href is an internal link
 						link = strings.TrimSuffix(strings.TrimSpace(a.Val), "/")
-						if !wasVisited(link) { // the link was not visited yet
-							visited[link] = Internal
+						if !wasVisited(link, visited) { // the link was not visited yet
+							(*visited)[link] = Internal
 							page.GetElement().Links[link] = Internal // add internal link to Set of links
 						}
 					} else if !strings.HasPrefix(a.Val, "#") { // href is an external link
 						link = strings.TrimSuffix(strings.TrimSpace(a.Val), "/")
-						if !wasVisited(link) { // the link was not visited yet
-							visited[link] = External
+						if !wasVisited(link, visited) { // the link was not visited yet
+							(*visited)[link] = External
 							page.GetElement().Links[link] = External
 						}
 					}
@@ -193,13 +209,13 @@ func spider(client *http.Client, sitemap *Tree[Page], page *Node[Page]) {
 	// call the spider on the child if it has an internal link
 	for _, child := range page.Children() {
 		if child.GetElement().Status == Internal {
-			spider(client, sitemap, child)
+			spider(client, sitemap, child, visited)
 		}
 	}
 }
 
-func wasVisited(link string) bool {
-	for k, _ := range visited {
+func wasVisited(link string, visited *Set) bool {
+	for k, _ := range *visited {
 		if strings.ToLower(k) == strings.ToLower(link) {
 			return true
 		}
@@ -216,6 +232,7 @@ const (
 	Blue   = "\033[34m"
 	Purple = "\033[35m"
 	Cyan   = "\033[36m"
+	Orange = "\033[38;5;215m"
 )
 
 func printPreorderIndent(t *Tree[Page], n *Node[Page], d int) {
