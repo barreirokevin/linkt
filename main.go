@@ -7,7 +7,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"reflect"
 	"strings"
+	"time"
 
 	"golang.org/x/net/html"
 )
@@ -51,13 +53,26 @@ func main() {
 		} else if isValidURL(os.Args[2]) {
 			root, _ = url.Parse(os.Args[2])
 		} else { // invalid URL
-			fmt.Printf("%sInvalid URL%s\n", Red, Reset)
+			fmt.Printf("%sinvalid URL%s\n", Red, Reset)
 			os.Exit(0)
 		}
 	}
 
+	// create logs directory if it doesn't exist
+	os.Mkdir("logs", 0777)
+
+	// create logger
+	now := time.Now()
+	log, err := os.OpenFile(fmt.Sprintf("logs/%d.log", now.UnixNano()), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		fmt.Printf("%serror creating log: %s%s\n", Red, err, Reset)
+		os.Exit(-1)
+	}
+	defer log.Close()
+	logger := slog.New(slog.NewTextHandler(log, &slog.HandlerOptions{Level: slog.LevelDebug}))
+
 	if len(os.Args) == 3 && sitemapFlag { // sitemap flag is set
-		sitemap(root) // build sitemap
+		sitemap(root, logger) // build sitemap
 		os.Exit(0)
 	}
 
@@ -78,7 +93,7 @@ func isValidURL(value string) bool {
 	return true
 }
 
-func sitemap(root *url.URL) {
+func sitemap(root *url.URL, logger *slog.Logger) {
 	visited := &Set{}          // Contains all visited links
 	sitemap := NewTree[Page]() // contains the sitemap we are building
 	page := Page{
@@ -92,7 +107,7 @@ func sitemap(root *url.URL) {
 	// add root to sitemap and Set of visited links
 	_, err := sitemap.AddRoot(page)
 	if err != nil {
-		slog.Error(
+		logger.Error(
 			"error adding root page to the sitemap",
 			"page", sitemap.Root().GetElement().Request.URL.String(),
 			"error", err,
@@ -103,23 +118,23 @@ func sitemap(root *url.URL) {
 	// construct http client
 	client := &http.Client{}
 	// call spider to start crawling from the root
-	spider(client, sitemap, sitemap.Root(), visited)
+	spider(client, sitemap, sitemap.Root(), visited, logger)
 	// print the sitemap
-	printPreorderIndent(sitemap, sitemap.Root(), 0)
+	printPreorderIndent(sitemap, sitemap.Root(), -1)
 }
 
-func spider(client *http.Client, sitemap *Tree[Page], page *Node[Page], visited *Set) {
+func spider(client *http.Client, sitemap *Tree[Page], page *Node[Page], visited *Set, logger *slog.Logger) {
 	// get page
 	resp, err := client.Do(page.GetElement().Request)
 	if err != nil {
-		slog.Error(
+		logger.Error(
 			"error getting the page",
 			"page", page.GetElement().Request.URL.String(),
 			"error", err,
 		)
 		os.Exit(0)
 	}
-	slog.Info(
+	logger.Info(
 		"got the page",
 		"page", page.GetElement().Request.URL.String(),
 		"status", resp.Status,
@@ -128,7 +143,7 @@ func spider(client *http.Client, sitemap *Tree[Page], page *Node[Page], visited 
 	// parse page to get tree
 	doc, err := html.Parse(resp.Body)
 	if err != nil {
-		slog.Error(
+		logger.Error(
 			"error parsing a page",
 			"page", page.GetElement().Request.URL.String(),
 			"error", err,
@@ -188,7 +203,7 @@ func spider(client *http.Client, sitemap *Tree[Page], page *Node[Page], visited 
 		} else { // link is external
 			u, err := url.Parse(p)
 			if err != nil {
-				slog.Error(
+				logger.Error(
 					"error parsing a page URL",
 					"page", p,
 					"error", err,
@@ -209,7 +224,7 @@ func spider(client *http.Client, sitemap *Tree[Page], page *Node[Page], visited 
 	// call the spider on the child if it has an internal link
 	for _, child := range page.Children() {
 		if child.GetElement().Status == Internal {
-			spider(client, sitemap, child, visited)
+			spider(client, sitemap, child, visited, logger)
 		}
 	}
 }
@@ -236,15 +251,28 @@ const (
 )
 
 func printPreorderIndent(t *Tree[Page], n *Node[Page], d int) {
-	var color string
-	if len(n.Children()) > 0 {
-		color = Cyan
+	if reflect.DeepEqual(t.Root(), n) {
+		fmt.Printf("%s%+v%s\n", Orange, n.GetElement().Request.URL.String(), Reset)
+	} else if len(n.Children()) == 0 && reflect.DeepEqual(n.GetParent().Children()[len(n.GetParent().Children())-1], n) {
+		indent := strings.Repeat(" ", d*4)
+		if d > 0 && d%2 == 0 {
+			fmt.Printf("│%s └─── %+v\n", indent, n.GetElement().Request.URL.String())
+		} else if d > 0 && d%2 != 0 {
+			fmt.Printf("│%s└─── %+v\n", indent, n.GetElement().Request.URL.String())
+		} else {
+			fmt.Printf("%s└─── %+v\n", indent, n.GetElement().Request.URL.String())
+		}
 	} else {
-		color = Purple
+		indent := strings.Repeat(" ", d*4)
+		if d > 0 && d%2 == 0 {
+			fmt.Printf("│%s ├─── %+v\n", indent, n.GetElement().Request.URL.String())
+		} else if d > 0 && d%2 != 0 {
+			fmt.Printf("│%s├─── %+v\n", indent, n.GetElement().Request.URL.String())
+		} else {
+			fmt.Printf("%s├─── %+v\n", indent, n.GetElement().Request.URL.String())
+		}
 	}
 
-	indent := strings.Repeat(" ", d*4)
-	fmt.Printf("%s%s%+v%s\n", color, indent, n.GetElement().Request.URL.String(), Reset)
 	for _, c := range n.Children() {
 		printPreorderIndent(t, c, d+1)
 	}
