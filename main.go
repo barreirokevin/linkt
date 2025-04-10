@@ -14,6 +14,9 @@ import (
 	"golang.org/x/net/html"
 )
 
+// TODO: move utilty funcs to a util package so that I can write tests for them
+// TODO: write test() process func
+
 func main() {
 	// define custom usage message
 	flag.Usage = func() {
@@ -160,13 +163,13 @@ func spider(client *http.Client, sitemap *Tree[Page], page *Node[Page], visited 
 				if a.Key == "href" { // attribute is an href
 					if strings.HasPrefix(a.Val, "/") { // href is an internal link
 						link = strings.TrimSuffix(strings.TrimSpace(a.Val), "/")
-						if !wasVisited(link, visited) { // the link was not visited yet
+						if !contains(link, visited) { // the link was not visited yet
 							(*visited)[link] = Internal
 							page.GetElement().Links[link] = Internal // add internal link to Set of links
 						}
 					} else if !strings.HasPrefix(a.Val, "#") { // href is an external link
 						link = strings.TrimSuffix(strings.TrimSpace(a.Val), "/")
-						if !wasVisited(link, visited) { // the link was not visited yet
+						if !contains(link, visited) { // the link was not visited yet
 							(*visited)[link] = External
 							page.GetElement().Links[link] = External
 						}
@@ -229,11 +232,10 @@ func spider(client *http.Client, sitemap *Tree[Page], page *Node[Page], visited 
 	}
 }
 
-func wasVisited(link string, visited *Set) bool {
-	for k, _ := range *visited {
-		if strings.ToLower(k) == strings.ToLower(link) {
-			return true
-		}
+func contains(value string, set *Set) bool {
+	_, found := (*set)[value]
+	if found {
+		return true
 	}
 	return false
 }
