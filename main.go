@@ -117,7 +117,6 @@ func sitemap(root *url.URL, logger *slog.Logger) {
 		)
 		os.Exit(-1)
 	}
-	(*visited)[page.Request.URL.String()] = Internal
 	// construct http client
 	client := &http.Client{}
 	// call spider to start crawling from the root
@@ -142,6 +141,12 @@ func spider(client *http.Client, sitemap *Tree[Page], page *Node[Page], visited 
 		"page", page.GetElement().Request.URL.String(),
 		"status", resp.Status,
 	)
+
+	// add root page as internal link to Set of links
+	if reflect.DeepEqual(sitemap.Root(), page) {
+		(*visited)[page.GetElement().Request.URL.String()] = Internal
+		page.GetElement().Links[page.GetElement().Request.URL.String()] = Internal
+	}
 
 	// parse page to get tree
 	doc, err := html.Parse(resp.Body)
@@ -227,6 +232,7 @@ func spider(client *http.Client, sitemap *Tree[Page], page *Node[Page], visited 
 	// call the spider on the child if it has an internal link
 	for _, child := range page.Children() {
 		if child.GetElement().Status == Internal {
+			// TODO: call spider in its own go routine so that each spider crawls concurrently
 			spider(client, sitemap, child, visited, logger)
 		}
 	}
