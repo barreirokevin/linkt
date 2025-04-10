@@ -256,20 +256,20 @@ func printPreorderIndent(t *Tree[Page], n *Node[Page], d int) {
 	} else if len(n.Children()) == 0 && reflect.DeepEqual(n.GetParent().Children()[len(n.GetParent().Children())-1], n) {
 		indent := strings.Repeat(" ", d*4)
 		if d > 0 && d%2 == 0 {
-			fmt.Printf("│%s └─── %+v\n", indent, n.GetElement().Request.URL.String())
+			fmt.Printf("%s│%s └─── %s%+v\n", Orange, indent, Reset, n.GetElement().Request.URL.String())
 		} else if d > 0 && d%2 != 0 {
-			fmt.Printf("│%s└─── %+v\n", indent, n.GetElement().Request.URL.String())
+			fmt.Printf("%s│%s└─── %s%+v\n", Orange, indent, Reset, n.GetElement().Request.URL.String())
 		} else {
-			fmt.Printf("%s└─── %+v\n", indent, n.GetElement().Request.URL.String())
+			fmt.Printf("%s%s└─── %s%+v\n", Orange, indent, Reset, n.GetElement().Request.URL.String())
 		}
 	} else {
 		indent := strings.Repeat(" ", d*4)
 		if d > 0 && d%2 == 0 {
-			fmt.Printf("│%s ├─── %+v\n", indent, n.GetElement().Request.URL.String())
+			fmt.Printf("%s│%s ├─── %s%+v\n", Orange, indent, Reset, n.GetElement().Request.URL.String())
 		} else if d > 0 && d%2 != 0 {
-			fmt.Printf("│%s├─── %+v\n", indent, n.GetElement().Request.URL.String())
+			fmt.Printf("%s│%s├─── %s%+v\n", Orange, indent, Reset, n.GetElement().Request.URL.String())
 		} else {
-			fmt.Printf("%s├─── %+v\n", indent, n.GetElement().Request.URL.String())
+			fmt.Printf("%s%s├─── %s%+v\n", Orange, indent, Reset, n.GetElement().Request.URL.String())
 		}
 	}
 
