@@ -75,13 +75,27 @@ func main() {
 	logger := slog.New(slog.NewTextHandler(log, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
 	if len(os.Args) == 3 && sitemapFlag { // sitemap flag is set
+		go animation()
 		sitemap(root, logger) // build sitemap
+		// TODO: end CLI animation
 		os.Exit(0)
 	}
 
 	if len(os.Args) == 3 && testFlag { // test flag is set
+		// TODO: start CLI animation in its own goroutine
 		// TODO: call test process
 		// TODO: os.Exit(0)
+		// TODO: end CLI animation
+	}
+}
+
+func animation() {
+	dots := []string{".  ", ".. ", "...", " ..", "  .", "   "}
+	for {
+		for _, s := range dots {
+			fmt.Printf("\rScanning %s", s)
+			time.Sleep((1 * time.Second) / 4)
+		}
 	}
 }
 
@@ -260,7 +274,7 @@ const (
 
 func printPreorderIndent(t *Tree[Page], n *Node[Page], d int) {
 	if reflect.DeepEqual(t.Root(), n) {
-		fmt.Printf("%s%+v%s\n", Orange, n.GetElement().Request.URL.String(), Reset)
+		fmt.Printf("\r%s%+v%s\n", Orange, n.GetElement().Request.URL.String(), Reset)
 	} else if len(n.Children()) == 0 && reflect.DeepEqual(n.GetParent().Children()[len(n.GetParent().Children())-1], n) {
 		indent := strings.Repeat(" ", d*4)
 		if d > 0 && d%2 == 0 {
