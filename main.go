@@ -77,15 +77,12 @@ func main() {
 	if len(os.Args) == 3 && sitemapFlag { // sitemap flag is set
 		go animation()
 		sitemap(root, logger) // build sitemap
-		// TODO: end CLI animation
 		os.Exit(0)
 	}
 
 	if len(os.Args) == 3 && testFlag { // test flag is set
-		// TODO: start CLI animation in its own goroutine
 		// TODO: call test process
 		// TODO: os.Exit(0)
-		// TODO: end CLI animation
 	}
 }
 
