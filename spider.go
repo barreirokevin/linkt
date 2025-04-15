@@ -11,6 +11,7 @@ import (
 	"golang.org/x/net/html"
 )
 
+// Called on a page and begins crawling therefrom to obtain all anchor tags within the domain of page.
 func spider(client *http.Client, sitemap *Tree[Page], page *Node[Page], visited *Set, logger *slog.Logger) {
 	// get page
 	resp, err := client.Do(page.GetElement().Request)

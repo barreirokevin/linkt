@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+// Builds a sitemap for the URL root. The logger outputs logs to the logs directory in the
+// current working directory.
 func sitemap(root *url.URL, logger *slog.Logger) {
 	visited := &Set{}          // Contains all visited links
 	sitemap := NewTree[Page]() // contains the sitemap we are building
@@ -39,6 +41,7 @@ func sitemap(root *url.URL, logger *slog.Logger) {
 	printPreorderIndent(sitemap, sitemap.Root(), -1)
 }
 
+// Prints the sitemap to stdout with a preorder traversal of tree t.
 func printPreorderIndent(t *Tree[Page], n *Node[Page], d int) {
 	if reflect.DeepEqual(t.Root(), n) {
 		fmt.Printf("\r%s%+v%s\n", Orange, n.GetElement().Request.URL.String(), Reset)
