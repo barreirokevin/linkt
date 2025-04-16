@@ -29,11 +29,11 @@ func isValidURL(value string) bool {
 	return true
 }
 
-func animation() {
+func dots() {
 	dots := []string{".  ", ".. ", "...", " ..", "  .", "   "}
 	for {
 		for _, s := range dots {
-			fmt.Printf("\rScanning %s", s)
+			fmt.Printf("\rscanning %s", s)
 			time.Sleep((1 * time.Second) / 4)
 		}
 	}
