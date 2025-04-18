@@ -73,9 +73,9 @@ func main() {
 		logger := slog.New(slog.NewTextHandler(log, &slog.HandlerOptions{Level: slog.LevelDebug}))
 		done := make(chan bool)
 		go sitemapAnimation(done)
-		// TODO: rename sitemap() to handleSitemap()
-		// TODO: place all logic above inside handleSitemap()
-		sitemap(root, done, logger) // build sitemap
+		// TODO: place all logic above inside sitemap.Build()
+		sitemap := NewSitemap(logger)
+		sitemap.Build(root, done)
 		os.Exit(0)
 
 	case testFlag: // run test

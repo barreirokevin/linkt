@@ -22,3 +22,8 @@ type Page struct {
 	// equivalent to integer 1, and Unknown is equivalent to integer -1.
 	Status int
 }
+
+// Returns a string representing the URL of this Page.
+func (p Page) URL() string {
+	return p.Request.URL.String()
+}

@@ -33,7 +33,7 @@ func sitemapAnimation(done chan bool) {
 	for {
 		select {
 		case <-done:
-			fmt.Printf("\n%s✓%s done! Sitemap was saved to %s./sitemap.txt%s\n", Green, Reset, Purple, Reset)
+			fmt.Printf("\n%s=>%s done!\n\n", Green, Reset)
 			return
 		default:
 			dots := []string{".  ", ".. ", "...", " ..", "  .", "   "}

@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"iter"
 	"reflect"
 )
 
@@ -75,50 +74,46 @@ func (t *Tree[T]) Depth(n *Node[T]) int {
 	}
 }
 
-// Adds general nodes of the subtree rooted at general node n to the given snapshot using
-// the preorder traversal algorithm.
-func (t *Tree[T]) preorderSubtree(n *Node[T], snapshot []*Node[T]) {
-	snapshot = append(snapshot, n) // preorder algorithm requires adding n before exploring subtrees
-	for _, c := range n.Children() {
-		t.preorderSubtree(c, snapshot)
-	}
-}
-
-// Returns an iterator that performs a preorder traversal of the general tree.
-func (t *Tree[T]) Preorder() iter.Seq[*Node[T]] {
+// Returns an array that contains the nodes in the tree after having traversed it
+// with a preorder algorithm.
+func (t *Tree[T]) Preorder() []*Node[T] {
 	snapshot := []*Node[T]{}
-	if t.size > 0 { // if tree is not empty
-		t.preorderSubtree(t.root, snapshot)
-	}
-	return func(yield func(*Node[T]) bool) {
-		for _, n := range snapshot {
-			if !yield(n) {
-				return
-			}
+
+	// define recursive preorder traversal algorithm
+	var preorderSubtree func(n *Node[T], snapshot []*Node[T])
+	preorderSubtree = func(n *Node[T], snapshot []*Node[T]) {
+		// preorder requires adding n before exploring subtrees
+		snapshot = append(snapshot, n)
+		for _, c := range n.Children() {
+			preorderSubtree(c, snapshot)
 		}
 	}
-}
 
-// Adds general nodes of the subtree rooted at general node n to the given snapshot using
-// the prostorder traversal algorithm.
-func (t *Tree[T]) postorderSubtree(n *Node[T], snapshot []*Node[T]) {
-	for _, c := range n.Children() {
-		t.postorderSubtree(c, snapshot)
-	}
-	snapshot = append(snapshot, n) // postorder algorithm requires adding n after exploring subtrees
-}
-
-// Returns an iterator that performs a postorder traversal of the general tree.
-func (t *Tree[T]) Postorder() iter.Seq[*Node[T]] {
-	snapshot := []*Node[T]{}
 	if t.size > 0 { // if tree is not empty
-		t.postorderSubtree(t.root, snapshot)
+		preorderSubtree(t.root, snapshot)
 	}
-	return func(yield func(*Node[T]) bool) {
-		for _, n := range snapshot {
-			if !yield(n) {
-				return
-			}
+
+	return snapshot
+}
+
+// Returns an array that contains the nodes in the tree after having traversed it
+// with a postorder algorithm.
+func (t *Tree[T]) Postorder() []*Node[T] {
+	snapshot := []*Node[T]{}
+
+	// define recursive postorder traversal algorithm
+	var postorderSubtree func(n *Node[T], snapshot []*Node[T])
+	postorderSubtree = func(n *Node[T], snapshot []*Node[T]) {
+		for _, c := range n.Children() {
+			postorderSubtree(c, snapshot)
 		}
+		// postorder requires adding n after exploring subtrees
+		snapshot = append(snapshot, n)
 	}
+
+	if t.size > 0 { // if tree is not empty
+		postorderSubtree(t.root, snapshot)
+	}
+
+	return snapshot
 }

@@ -10,11 +10,20 @@ import (
 	"strings"
 )
 
+type Sitemap struct {
+	Tree[Page]
+	logger *slog.Logger
+}
+
+// Returns an empty sitemap.
+func NewSitemap(logger *slog.Logger) *Sitemap {
+	return &Sitemap{logger: logger}
+}
+
 // Builds a sitemap for the URL root. The logger outputs logs to the logs directory in the
 // current working directory.
-func sitemap(root *url.URL, done chan bool, logger *slog.Logger) {
-	visited := &Set{}          // Contains all visited links
-	sitemap := NewTree[Page]() // contains the sitemap we are building
+func (s *Sitemap) Build(root *url.URL, done chan bool) {
+	visited := &Set{} // Contains all visited links
 	page := Page{
 		Request: &http.Request{
 			Method: http.MethodGet,
@@ -24,11 +33,11 @@ func sitemap(root *url.URL, done chan bool, logger *slog.Logger) {
 		Status: Unknown,
 	}
 	// add root to sitemap and Set of visited links
-	_, err := sitemap.AddRoot(page)
+	_, err := s.AddRoot(page)
 	if err != nil {
-		logger.Error(
+		s.logger.Error(
 			"error adding root page to the sitemap",
-			"page", sitemap.Root().GetElement().Request.URL.String(),
+			"page", s.Root().GetElement().Request.URL.String(),
 			"error", err,
 		)
 		os.Exit(-1)
@@ -36,38 +45,54 @@ func sitemap(root *url.URL, done chan bool, logger *slog.Logger) {
 	// construct http client
 	client := &http.Client{}
 	// call spider to start crawling from the root
-	spider(client, sitemap, sitemap.Root(), visited, logger)
-	// send signal to dots animation that sitemap is done
+	spider(client, s, s.Root(), visited, s.logger)
+	// send signal to sitemap animation that sitemap is done
 	done <- true
-	// print the sitemap
-	// printPreorderIndent(sitemap, sitemap.Root(), -1)
+	// print the sitemap to stdout
+	fmt.Printf("%s\n", s.String())
 }
 
-// Prints the sitemap to stdout with a preorder traversal of tree t.
-func printPreorderIndent(t *Tree[Page], n *Node[Page], d int) {
-	if reflect.DeepEqual(t.Root(), n) {
-		fmt.Printf("\r%s%+v%s\n", Orange, n.GetElement().Request.URL.String(), Reset)
-	} else if len(n.Children()) == 0 && reflect.DeepEqual(n.GetParent().Children()[len(n.GetParent().Children())-1], n) {
-		indent := strings.Repeat(" ", d*4)
-		if d > 0 && d%2 == 0 {
-			fmt.Printf("%s│%s └─── %s%+v\n", Orange, indent, Reset, n.GetElement().Request.URL.String())
-		} else if d > 0 && d%2 != 0 {
-			fmt.Printf("%s│%s└─── %s%+v\n", Orange, indent, Reset, n.GetElement().Request.URL.String())
+// Returns the tree as a string that displays the hiearachy.
+func (s *Sitemap) String() string {
+	str := ""
+
+	var preorderIndent func(s *Sitemap, n *Node[Page], d int)
+	preorderIndent = func(s *Sitemap, n *Node[Page], d int) {
+		if reflect.DeepEqual(s.Root(), n) {
+			// the current node is the root
+			str += fmt.Sprintf("%s\n", n.GetElement().URL())
+
+		} else if len(n.Children()) == 0 &&
+			reflect.DeepEqual(n.GetParent().Children()[len(n.GetParent().Children())-1], n) {
+			// the current node is the last child
+			indent := strings.Repeat(" ", d*4)
+			if d > 0 && d%2 == 0 {
+				str += fmt.Sprintf("│%s └─── %+v\n", indent, n.GetElement().URL())
+			} else if d > 0 && d%2 != 0 {
+				str += fmt.Sprintf("│%s└─── %+v\n", indent, n.GetElement().URL())
+			} else {
+				str += fmt.Sprintf("%s└─── %+v\n", indent, n.GetElement().URL())
+			}
+
 		} else {
-			fmt.Printf("%s%s└─── %s%+v\n", Orange, indent, Reset, n.GetElement().Request.URL.String())
+			// the current node is not the last child
+			indent := strings.Repeat(" ", d*4)
+			if d > 0 && d%2 == 0 {
+				str += fmt.Sprintf("│%s ├─── %+v\n", indent, n.GetElement().URL())
+			} else if d > 0 && d%2 != 0 {
+				str += fmt.Sprintf("│%s├─── %+v\n", indent, n.GetElement().URL())
+			} else {
+				str += fmt.Sprintf("%s├─── %+v\n", indent, n.GetElement().URL())
+			}
 		}
-	} else {
-		indent := strings.Repeat(" ", d*4)
-		if d > 0 && d%2 == 0 {
-			fmt.Printf("%s│%s ├─── %s%+v\n", Orange, indent, Reset, n.GetElement().Request.URL.String())
-		} else if d > 0 && d%2 != 0 {
-			fmt.Printf("%s│%s├─── %s%+v\n", Orange, indent, Reset, n.GetElement().Request.URL.String())
-		} else {
-			fmt.Printf("%s%s├─── %s%+v\n", Orange, indent, Reset, n.GetElement().Request.URL.String())
+
+		// recursively call preorderIndent for each child
+		for _, c := range n.Children() {
+			preorderIndent(s, c, d+1)
 		}
 	}
 
-	for _, c := range n.Children() {
-		printPreorderIndent(t, c, d+1)
-	}
+	// begin preorderIndent with the tree's root
+	preorderIndent(s, s.Root(), -1)
+	return str
 }
