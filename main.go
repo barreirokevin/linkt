@@ -33,7 +33,19 @@ func main() {
 
 	switch {
 	case versionFlag: // show version
-		fmt.Printf("%slinkt v0.0.1%s\n", Orange, Reset)
+		logo := `
+		
+ ___       ___  ________   ___  __    _________
+|\  \     |\  \|\   ___  \|\  \|\  \ |\___   ___\
+\ \  \    \ \  \ \  \\ \  \ \  \/  /|\|___ \  \_|
+ \ \  \    \ \  \ \  \\ \  \ \   ___  \   \ \  \
+  \ \  \____\ \  \ \  \\ \  \ \  \\ \  \   \ \  \
+   \ \_______\ \__\ \__\\ \__\ \__\\ \__\   \ \__\
+    \|_______|\|__|\|__| \|__|\|__| \|__|    \|__|    v0.0.1, built with Go 1.23.2
+                                                                     
+
+		`
+		fmt.Printf("%s%s%s\n", Orange, logo, Reset)
 		os.Exit(0)
 
 	case sitemapFlag: // build sitemap
@@ -59,10 +71,11 @@ func main() {
 		}
 		defer log.Close()
 		logger := slog.New(slog.NewTextHandler(log, &slog.HandlerOptions{Level: slog.LevelDebug}))
-		go dots()
+		done := make(chan bool)
+		go sitemapAnimation(done)
 		// TODO: rename sitemap() to handleSitemap()
 		// TODO: place all logic above inside handleSitemap()
-		sitemap(root, logger) // build sitemap
+		sitemap(root, done, logger) // build sitemap
 		os.Exit(0)
 
 	case testFlag: // run test

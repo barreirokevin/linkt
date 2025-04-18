@@ -12,7 +12,7 @@ import (
 
 // Builds a sitemap for the URL root. The logger outputs logs to the logs directory in the
 // current working directory.
-func sitemap(root *url.URL, logger *slog.Logger) {
+func sitemap(root *url.URL, done chan bool, logger *slog.Logger) {
 	visited := &Set{}          // Contains all visited links
 	sitemap := NewTree[Page]() // contains the sitemap we are building
 	page := Page{
@@ -37,8 +37,10 @@ func sitemap(root *url.URL, logger *slog.Logger) {
 	client := &http.Client{}
 	// call spider to start crawling from the root
 	spider(client, sitemap, sitemap.Root(), visited, logger)
+	// send signal to dots animation that sitemap is done
+	done <- true
 	// print the sitemap
-	printPreorderIndent(sitemap, sitemap.Root(), -1)
+	// printPreorderIndent(sitemap, sitemap.Root(), -1)
 }
 
 // Prints the sitemap to stdout with a preorder traversal of tree t.

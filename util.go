@@ -29,12 +29,18 @@ func isValidURL(value string) bool {
 	return true
 }
 
-func dots() {
-	dots := []string{".  ", ".. ", "...", " ..", "  .", "   "}
+func sitemapAnimation(done chan bool) {
 	for {
-		for _, s := range dots {
-			fmt.Printf("\rscanning %s", s)
-			time.Sleep((1 * time.Second) / 4)
+		select {
+		case <-done:
+			fmt.Printf("\n%s✓%s done! Sitemap was saved to %s./sitemap.txt%s\n", Green, Reset, Purple, Reset)
+			return
+		default:
+			dots := []string{".  ", ".. ", "...", " ..", "  .", "   "}
+			for _, s := range dots {
+				fmt.Printf("\r%s=>%s collecting links%s%s%s", Orange, Reset, Orange, s, Reset)
+				time.Sleep((1 * time.Second) / 4)
+			}
 		}
 	}
 }
