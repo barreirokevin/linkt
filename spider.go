@@ -12,20 +12,61 @@ import (
 	"golang.org/x/net/html"
 )
 
-// Called on a page and begins crawling therefrom to obtain all anchor tags within the domain of page.
-func spider(client *http.Client, sitemap *Sitemap, node *Node[Page], visited *Set, logger *slog.Logger) {
+const ( // actions a spider can take
+	SITEMAP = iota
+	TEST
+	SCREENSHOTS
+)
+
+// A spider with capabilities such as building a sitemap, testing links,
+// and taking screenshots for a site.
+type Spider struct {
+	client  *http.Client
+	logger  *slog.Logger
+	visited *Set
+}
+
+// Returns a new spider with an HTTP client.
+func NewSpider(logger *slog.Logger) *Spider {
+	c := &http.Client{}
+	return &Spider{client: c, logger: logger, visited: &Set{}}
+}
+
+// Enables the spider to build a sitemap starting from the root URL.
+func (s *Spider) DoSitemap(root *url.URL, done chan bool) {
+	sitemap := NewSitemap(s.logger)
+	page := *NewPage(root)
+	_, err := sitemap.AddRoot(page)
+	if err != nil {
+		s.logger.Error(
+			"error adding root page to the sitemap",
+			"page", page.URL(),
+			"error", err,
+		)
+		os.Exit(-1)
+	}
+	// start recursively building the sitemap
+	s.build(sitemap, sitemap.Root())
+	// send signal to sitemap animation that sitemap is done
+	done <- true
+	// print the sitemap to stdout
+	fmt.Printf("%s\n", sitemap.String())
+}
+
+// Called on a page and begins crawling therefrom to obtain all anchor tags within the domain of page to build a sitemap.
+func (s *Spider) build(sitemap *Sitemap, node *Node[Page]) {
 	// get page
 	currentPage := node.GetElement()
-	resp, err := client.Do(currentPage.Request())
+	resp, err := s.client.Do(currentPage.Request())
 	if err != nil {
-		logger.Error(
+		s.logger.Error(
 			"error getting the page",
 			"page", currentPage.URL(),
 			"error", err,
 		)
 		os.Exit(0)
 	}
-	logger.Info(
+	s.logger.Info(
 		"got the page",
 		"page", currentPage.URL(),
 		"status", resp.Status,
@@ -33,14 +74,14 @@ func spider(client *http.Client, sitemap *Sitemap, node *Node[Page], visited *Se
 
 	// add root page as internal link to Set of links
 	if reflect.DeepEqual(sitemap.Root(), currentPage) {
-		(*visited)[currentPage.URL()] = Internal
+		(*s.visited)[currentPage.URL()] = Internal
 		currentPage.Links()[currentPage.URL()] = Internal
 	}
 
 	// parse page to get tree
 	doc, err := html.Parse(resp.Body)
 	if err != nil {
-		logger.Error(
+		s.logger.Error(
 			"error parsing a page",
 			"page", currentPage.URL(),
 			"error", err,
@@ -57,14 +98,14 @@ func spider(client *http.Client, sitemap *Sitemap, node *Node[Page], visited *Se
 				if a.Key == "href" { // attribute is an href
 					if strings.HasPrefix(a.Val, "/") { // href is an internal link
 						link = strings.TrimSuffix(strings.TrimSpace(a.Val), "/")
-						if !contains(link, visited) { // the link was not visited yet
-							(*visited)[link] = Internal
+						if !contains(link, s.visited) { // the link was not visited yet
+							(*s.visited)[link] = Internal
 							currentPage.Links()[link] = Internal // add internal link to Set of links
 						}
 					} else if !strings.HasPrefix(a.Val, "#") { // href is an external link
 						link = strings.TrimSuffix(strings.TrimSpace(a.Val), "/")
-						if !contains(link, visited) { // the link was not visited yet
-							(*visited)[link] = External
+						if !contains(link, s.visited) { // the link was not visited yet
+							(*s.visited)[link] = External
 							currentPage.Links()[link] = External
 						}
 					}
@@ -85,7 +126,7 @@ func spider(client *http.Client, sitemap *Sitemap, node *Node[Page], visited *Se
 		if t == Internal { // link is internal
 			link, err := url.Parse(fmt.Sprintf("%s%s", sitemap.Root().GetElement().URL(), p))
 			if err != nil {
-				logger.Error(
+				s.logger.Error(
 					"error parsing a page URL",
 					"page", link,
 					"error", err,
@@ -98,7 +139,7 @@ func spider(client *http.Client, sitemap *Sitemap, node *Node[Page], visited *Se
 		} else { // link is external
 			link, err := url.Parse(p)
 			if err != nil {
-				logger.Error(
+				s.logger.Error(
 					"error parsing a page URL",
 					"page", p,
 					"error", err,
@@ -113,7 +154,7 @@ func spider(client *http.Client, sitemap *Sitemap, node *Node[Page], visited *Se
 	// call the spider on the child if it has an internal link
 	for _, child := range node.Children() {
 		if child.GetElement().Type() == Internal {
-			spider(client, sitemap, child, visited, logger)
+			s.build(sitemap, child)
 		}
 	}
 }
