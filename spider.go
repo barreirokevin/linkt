@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -12,27 +13,28 @@ import (
 )
 
 // Called on a page and begins crawling therefrom to obtain all anchor tags within the domain of page.
-func spider(client *http.Client, sitemap *Sitemap, page *Node[Page], visited *Set, logger *slog.Logger) {
+func spider(client *http.Client, sitemap *Sitemap, node *Node[Page], visited *Set, logger *slog.Logger) {
 	// get page
-	resp, err := client.Do(page.GetElement().Request)
+	currentPage := node.GetElement()
+	resp, err := client.Do(currentPage.Request())
 	if err != nil {
 		logger.Error(
 			"error getting the page",
-			"page", page.GetElement().Request.URL.String(),
+			"page", currentPage.URL(),
 			"error", err,
 		)
 		os.Exit(0)
 	}
 	logger.Info(
 		"got the page",
-		"page", page.GetElement().Request.URL.String(),
+		"page", currentPage.URL(),
 		"status", resp.Status,
 	)
 
 	// add root page as internal link to Set of links
-	if reflect.DeepEqual(sitemap.Root(), page) {
-		(*visited)[page.GetElement().Request.URL.String()] = Internal
-		page.GetElement().Links[page.GetElement().Request.URL.String()] = Internal
+	if reflect.DeepEqual(sitemap.Root(), currentPage) {
+		(*visited)[currentPage.URL()] = Internal
+		currentPage.Links()[currentPage.URL()] = Internal
 	}
 
 	// parse page to get tree
@@ -40,7 +42,7 @@ func spider(client *http.Client, sitemap *Sitemap, page *Node[Page], visited *Se
 	if err != nil {
 		logger.Error(
 			"error parsing a page",
-			"page", page.GetElement().Request.URL.String(),
+			"page", currentPage.URL(),
 			"error", err,
 		)
 		os.Exit(-1)
@@ -57,13 +59,13 @@ func spider(client *http.Client, sitemap *Sitemap, page *Node[Page], visited *Se
 						link = strings.TrimSuffix(strings.TrimSpace(a.Val), "/")
 						if !contains(link, visited) { // the link was not visited yet
 							(*visited)[link] = Internal
-							page.GetElement().Links[link] = Internal // add internal link to Set of links
+							currentPage.Links()[link] = Internal // add internal link to Set of links
 						}
 					} else if !strings.HasPrefix(a.Val, "#") { // href is an external link
 						link = strings.TrimSuffix(strings.TrimSpace(a.Val), "/")
 						if !contains(link, visited) { // the link was not visited yet
 							(*visited)[link] = External
-							page.GetElement().Links[link] = External
+							currentPage.Links()[link] = External
 						}
 					}
 					break
@@ -79,24 +81,22 @@ func spider(client *http.Client, sitemap *Sitemap, page *Node[Page], visited *Se
 	crawl(doc)
 
 	// populate the tree with Set of internal and external links
-	var e Page
-	for p, t := range page.GetElement().Links {
+	for p, t := range currentPage.Links() {
 		if t == Internal { // link is internal
-			e = Page{
-				Request: &http.Request{
-					Method: http.MethodGet,
-					URL: &url.URL{
-						Scheme: sitemap.Root().GetElement().Request.URL.Scheme,
-						Host:   sitemap.Root().GetElement().Request.URL.Host,
-						Path:   p,
-					},
-				},
-				Links:  Set{},
-				Status: Internal,
+			link, err := url.Parse(fmt.Sprintf("%s%s", sitemap.Root().GetElement().URL(), p))
+			if err != nil {
+				logger.Error(
+					"error parsing a page URL",
+					"page", link,
+					"error", err,
+				)
 			}
-			sitemap.AddChild(page, e)
+			page := *NewPage(link)
+			page.SetType(Internal)
+			sitemap.AddChild(node, page)
+
 		} else { // link is external
-			u, err := url.Parse(p)
+			link, err := url.Parse(p)
 			if err != nil {
 				logger.Error(
 					"error parsing a page URL",
@@ -104,22 +104,15 @@ func spider(client *http.Client, sitemap *Sitemap, page *Node[Page], visited *Se
 					"error", err,
 				)
 			}
-			e = Page{
-				Request: &http.Request{
-					Method: http.MethodGet,
-					URL:    u,
-				},
-				Links:  Set{},
-				Status: External,
-			}
-			sitemap.AddChild(page, e)
+			page := *NewPage(link)
+			page.SetType(External)
+			sitemap.AddChild(node, page)
 		}
 	}
 
 	// call the spider on the child if it has an internal link
-	for _, child := range page.Children() {
-		if child.GetElement().Status == Internal {
-			// TODO: call spider in its own go routine so that each spider crawls concurrently
+	for _, child := range node.Children() {
+		if child.GetElement().Type() == Internal {
 			spider(client, sitemap, child, visited, logger)
 		}
 	}

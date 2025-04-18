@@ -23,21 +23,14 @@ func NewSitemap(logger *slog.Logger) *Sitemap {
 // Builds a sitemap for the URL root. The logger outputs logs to the logs directory in the
 // current working directory.
 func (s *Sitemap) Build(root *url.URL, done chan bool) {
-	visited := &Set{} // Contains all visited links
-	page := Page{
-		Request: &http.Request{
-			Method: http.MethodGet,
-			URL:    root,
-		},
-		Links:  Set{},
-		Status: Unknown,
-	}
+	visited := &Set{} // contains all visited links
+	page := *NewPage(root)
 	// add root to sitemap and Set of visited links
 	_, err := s.AddRoot(page)
 	if err != nil {
 		s.logger.Error(
 			"error adding root page to the sitemap",
-			"page", s.Root().GetElement().Request.URL.String(),
+			"page", page.URL(),
 			"error", err,
 		)
 		os.Exit(-1)
