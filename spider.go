@@ -33,7 +33,7 @@ func NewSpider(logger *slog.Logger) *Spider {
 }
 
 // Enables the spider to build a sitemap starting from the root URL.
-func (s *Spider) DoSitemap(root *url.URL, done chan bool) {
+func (s *Spider) DoSitemap(root *url.URL) *Sitemap {
 	sitemap := NewSitemap(s.logger)
 	page := *NewPage(root)
 	_, err := sitemap.AddRoot(page)
@@ -47,10 +47,7 @@ func (s *Spider) DoSitemap(root *url.URL, done chan bool) {
 	}
 	// start recursively building the sitemap
 	s.build(sitemap, sitemap.Root())
-	// send signal to sitemap animation that sitemap is done
-	done <- true
-	// print the sitemap to stdout
-	fmt.Printf("%s\n", sitemap.String())
+	return sitemap
 }
 
 // Called on a page and begins crawling therefrom to obtain all anchor tags within the domain of page to build a sitemap.

@@ -3,25 +3,25 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log/slog"
 	"net/url"
 	"os"
-	"time"
 )
 
 func main() {
 	// define custom usage message
 	flag.Usage = func() {
-		fmt.Fprintf(flag.CommandLine.Output(), "\nUsage: linkt [options...] <url>\n\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "\nUsage: linkt [options...] --url <url>\n\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "Options:\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "    -m, --sitemap\tBuild a sitemap.\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "    -t, --test\t\tTest for broken links.\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "    -s, --screenshot\tTake screenshots of a site.\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "    -d, --debug\t\tShow debug logs.\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "    -v, --version\tShow the version number.\n\n")
 	}
 
 	// setup and parse CLI flags
-	var helpFlag, sitemapFlag, testFlag, screenshotFlag, versionFlag bool
+	var helpFlag, sitemapFlag, testFlag, screenshotFlag, versionFlag, debugFlag bool
+	var urlFlag string
 	flag.BoolVar(&helpFlag, "help", false, "")
 	flag.BoolVar(&helpFlag, "h", false, "")
 	flag.BoolVar(&sitemapFlag, "sitemap", false, "")
@@ -32,9 +32,45 @@ func main() {
 	flag.BoolVar(&testFlag, "s", false, "")
 	flag.BoolVar(&versionFlag, "version", false, "")
 	flag.BoolVar(&versionFlag, "v", false, "")
+	flag.BoolVar(&debugFlag, "debug", false, "")
+	flag.BoolVar(&debugFlag, "d", false, "")
+	flag.StringVar(&urlFlag, "url", "", "")
 	flag.Parse()
 
+	// verify url
+	logger := NewLogger(debugFlag)
+	if !isValidURL(urlFlag) {
+		logger.Error("missing or invalid URL", "url", urlFlag)
+		os.Exit(0)
+	}
+	root, err := url.Parse(urlFlag)
+	if err != nil {
+		logger.Error("error parsing URL", "url", urlFlag, "error", err)
+		os.Exit(0)
+	}
+
 	switch {
+	case sitemapFlag:
+		done := make(chan bool)
+		if !debugFlag { // start sitemap animation
+			go sitemapAnimation(done)
+		}
+		// spawn a spider to build the sitemap
+		spider := NewSpider(logger)
+		sitemap := spider.DoSitemap(root)
+		if !debugFlag { // stop sitemap animation
+			done <- true
+		}
+		fmt.Printf("\n%s\n", sitemap.String())
+		// exit the program successfully
+		os.Exit(0)
+
+	case testFlag:
+	// TODO:
+
+	case screenshotFlag:
+		// TODO:
+
 	case versionFlag: // show version
 		logo := `
 		
@@ -50,42 +86,6 @@ func main() {
 		`
 		fmt.Printf("%s%s%s\n", Orange, logo, Reset)
 		os.Exit(0)
-
-	case sitemapFlag: // build sitemap
-		var root *url.URL
-		if len(os.Args) == 3 { // verify URL is valid
-			if isValidURL(os.Args[1]) {
-				root, _ = url.Parse(os.Args[1])
-			} else if isValidURL(os.Args[2]) {
-				root, _ = url.Parse(os.Args[2])
-			} else { // invalid URL
-				fmt.Printf("%sinvalid URL%s\n", Red, Reset)
-				os.Exit(0)
-			}
-		}
-		// create logs directory if it doesn't exist
-		os.Mkdir("logs", 0777)
-
-		// create logger
-		now := time.Now()
-		log, err := os.OpenFile(fmt.Sprintf("logs/%d.log", now.UnixNano()), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-		if err != nil {
-			fmt.Printf("%serror creating log: %s%s\n", Red, err, Reset)
-			os.Exit(-1)
-		}
-		defer log.Close()
-		logger := slog.New(slog.NewTextHandler(log, &slog.HandlerOptions{Level: slog.LevelDebug}))
-		done := make(chan bool)
-		go sitemapAnimation(done)
-		spider := NewSpider(logger)
-		spider.DoSitemap(root, done)
-		os.Exit(0)
-
-	case testFlag: // run test
-	// TODO:
-
-	case screenshotFlag: // take screenshots
-	// TODO:
 
 	default: // show help
 		flag.Usage()
