@@ -95,13 +95,13 @@ func (s *Spider) build(sitemap *Sitemap, node *Node[Page]) {
 				if a.Key == "href" { // attribute is an href
 					if strings.HasPrefix(a.Val, "/") { // href is an internal link
 						link = strings.TrimSuffix(strings.TrimSpace(a.Val), "/")
-						if !contains(link, s.visited) { // the link was not visited yet
+						if !s.visited.Contains(link) { // the link was not visited yet
 							(*s.visited)[link] = Internal
 							currentPage.Links()[link] = Internal // add internal link to Set of links
 						}
 					} else if !strings.HasPrefix(a.Val, "#") { // href is an external link
 						link = strings.TrimSuffix(strings.TrimSpace(a.Val), "/")
-						if !contains(link, s.visited) { // the link was not visited yet
+						if !s.visited.Contains(link) { // the link was not visited yet
 							(*s.visited)[link] = External
 							currentPage.Links()[link] = External
 						}

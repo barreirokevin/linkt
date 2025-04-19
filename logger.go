@@ -7,6 +7,7 @@ import (
 	"log"
 	"log/slog"
 	"os"
+	"time"
 )
 
 // ANSI color codes
@@ -23,6 +24,8 @@ const (
 	ResetFaint = "\u001b[22m"
 )
 
+// Creates a new logger. By default the log level is set to slog.LevelError. If debugFlag
+// is true, then the log level is set to slog.LevelDebug.
 func NewLogger(debugFlag bool) *slog.Logger {
 	logLevel := &slog.LevelVar{}
 	opts := PrettyHandlerOptions{
@@ -40,15 +43,18 @@ func NewLogger(debugFlag bool) *slog.Logger {
 	return logger
 }
 
+// Custom handler for the logger to modify the styling of the log output.
 type PrettyHandler struct {
 	slog.Handler
 	l *log.Logger
 }
 
+// Options to specify when using a PrettyHandler.
 type PrettyHandlerOptions struct {
 	SlogOpts slog.HandlerOptions
 }
 
+// Returns a PrettyHandler for the logger to putput logs with custom styling.
 func NewPrettyHandler(out io.Writer, opts PrettyHandlerOptions) *PrettyHandler {
 	h := &PrettyHandler{
 		Handler: slog.NewTextHandler(out, &opts.SlogOpts),
@@ -57,6 +63,7 @@ func NewPrettyHandler(out io.Writer, opts PrettyHandlerOptions) *PrettyHandler {
 	return h
 }
 
+// Customizes the styling of the log output.
 func (h *PrettyHandler) Handle(ctx context.Context, r slog.Record) error {
 	var level string
 	switch r.Level {
@@ -76,4 +83,22 @@ func (h *PrettyHandler) Handle(ctx context.Context, r slog.Record) error {
 	})
 	h.l.Println(level, r.Message, attrs)
 	return nil
+}
+
+// Prints text to stdout in such a manner that it gives the impression the text is moving
+// while Spider is building the sitemap.
+func sitemapAnimation(done chan bool) {
+	for {
+		select {
+		case <-done:
+			fmt.Printf("\n%s[SUCCESS]%s sitemap was created!\n", Green, Reset)
+			return
+		default:
+			dots := []string{".  ", ".. ", "...", " ..", "  .", "   "}
+			for _, s := range dots {
+				fmt.Printf("\r%s[PENDING]%s collecting links%s%s%s", Orange, Reset, Orange, s, Reset)
+				time.Sleep((1 * time.Second) / 4)
+			}
+		}
+	}
 }

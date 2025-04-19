@@ -11,9 +11,6 @@ const ( // Type of page
 	External
 )
 
-// The keys of this map represent a Set, i.e. no duplicate values.
-type Set map[string]int
-
 // Maintains information about a page.
 type Page struct {
 	// HTTP request to GET this page
