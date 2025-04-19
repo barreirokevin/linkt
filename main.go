@@ -84,7 +84,7 @@ func main() {
                                                                      
 
 		`
-		fmt.Printf("%s%s%s\n", Orange, logo, Reset)
+		fmt.Printf("%s\n", logo)
 		os.Exit(0)
 
 	default: // show help
