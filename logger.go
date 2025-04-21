@@ -96,7 +96,7 @@ func sitemapAnimation(done chan bool) {
 		default:
 			dots := []string{".  ", ".. ", "...", " ..", "  .", "   "}
 			for _, s := range dots {
-				fmt.Printf("\r%s[PENDING]%s collecting links%s%s%s", Orange, Reset, Orange, s, Reset)
+				fmt.Printf("\r%s[PENDING]%s collecting links%s%s%s\n", Orange, Reset, Orange, s, Reset)
 				time.Sleep((1 * time.Second) / 4)
 			}
 		}

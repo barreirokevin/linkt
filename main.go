@@ -30,7 +30,7 @@ func main() {
 	case options.test:
 		switch {
 		case options.links:
-			fmt.Printf("%s[UNDER CONSTRUCTION]%s -l and --links is not available yet.\n", Orange, Reset)
+			fmt.Printf("%s[UNDER CONSTRUCTION]%s -l and --links is not available yet.\n\n", Orange, Reset)
 			root := isValidURL(options.url, logger)
 			// spawn a spider to test for broken links
 			spider := NewSpider(logger)
@@ -39,7 +39,7 @@ func main() {
 			os.Exit(0)
 
 		case options.images:
-			fmt.Printf("%s[UNDER CONSTRUCTION]%s -i and --images is not available yet.\n", Orange, Reset)
+			fmt.Printf("%s[UNDER CONSTRUCTION]%s -i and --images is not available yet.\n\n", Orange, Reset)
 			root := isValidURL(options.url, logger)
 			// spawn a spider to test for broken links
 			spider := NewSpider(logger)
@@ -53,7 +53,7 @@ func main() {
 		}
 
 	case options.screenshot:
-		fmt.Printf("%s[UNDER CONSTRUCTION]%s -s and --screenshot is not available yet.\n", Orange, Reset)
+		fmt.Printf("%s[UNDER CONSTRUCTION]%s -s and --screenshot is not available yet.\n\n", Orange, Reset)
 		root := isValidURL(options.url, logger)
 		// spawn a spider to test for broken links
 		spider := NewSpider(logger)
