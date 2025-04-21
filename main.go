@@ -13,14 +13,21 @@ func main() {
 		fmt.Fprintf(flag.CommandLine.Output(), "\nUsage: linkt [options...] --url <url>\n\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "Options:\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "    -m, --sitemap\tBuild a sitemap.\n")
-		fmt.Fprintf(flag.CommandLine.Output(), "    -t, --test\t\tTest for broken links.\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "    -t, --test\t\tRun a test against the URL.\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "    -s, --screenshot\tTake screenshots of a site.\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "    -d, --debug\t\tShow debug logs.\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "    -v, --version\tShow the version number.\n\n")
 	}
 
 	// setup and parse CLI flags
-	var helpFlag, sitemapFlag, testFlag, screenshotFlag, versionFlag, debugFlag bool
+	var helpFlag,
+		sitemapFlag,
+		testFlag,
+		screenshotFlag,
+		versionFlag,
+		debugFlag,
+		linksFlag,
+		imagesFlag bool
 	var urlFlag string
 	flag.BoolVar(&helpFlag, "help", false, "")
 	flag.BoolVar(&helpFlag, "h", false, "")
@@ -35,6 +42,10 @@ func main() {
 	flag.BoolVar(&debugFlag, "debug", false, "")
 	flag.BoolVar(&debugFlag, "d", false, "")
 	flag.StringVar(&urlFlag, "url", "", "")
+	flag.BoolVar(&linksFlag, "l", false, "")
+	flag.BoolVar(&linksFlag, "links", false, "")
+	flag.BoolVar(&imagesFlag, "i", false, "")
+	flag.BoolVar(&imagesFlag, "images", false, "")
 	flag.Parse()
 
 	logger := NewLogger(debugFlag)
@@ -61,11 +72,30 @@ func main() {
 		os.Exit(0)
 
 	case testFlag:
-		fmt.Printf("%s[UNDER CONSTRUCTION]%s this feature is not available yet.\n\n", Orange, Reset)
-		// TODO:
+		// define test flag help message
+		flag.Usage = func() {
+			fmt.Fprintf(flag.CommandLine.Output(), "\nUsage: linkt --test [options...] --url <url>\n\n")
+			fmt.Fprintf(flag.CommandLine.Output(), "Options:\n")
+			fmt.Fprintf(flag.CommandLine.Output(), "    -l, --links\t\tTest for broken links.\n")
+			fmt.Fprintf(flag.CommandLine.Output(), "    -i, --images\tTest for missing images.\n\n")
+		}
+
+		switch {
+		case linksFlag:
+			fmt.Printf("%s[UNDER CONSTRUCTION]%s -l and --links is not available yet.\n\n", Orange, Reset)
+			// TODO:
+
+		case imagesFlag:
+			fmt.Printf("%s[UNDER CONSTRUCTION]%s -i and --images is not available yet.\n\n", Orange, Reset)
+			// TODO:
+
+		default: // show help for test option
+			flag.Usage()
+			os.Exit(0)
+		}
 
 	case screenshotFlag:
-		fmt.Printf("%s[UNDER CONSTRUCTION]%s this feature is not available yet.\n\n", Orange, Reset)
+		fmt.Printf("%s[UNDER CONSTRUCTION]%s -s and --screenshot is not available yet.\n\n", Orange, Reset)
 		// TODO:
 
 	case versionFlag: // show version
