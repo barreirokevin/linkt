@@ -3,92 +3,44 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net/url"
 	"os"
 )
 
 func main() {
-	// define custom usage message
-	flag.Usage = func() {
-		fmt.Fprintf(flag.CommandLine.Output(), "\nUsage: linkt [options...] --url <url>\n\n")
-		fmt.Fprintf(flag.CommandLine.Output(), "Options:\n")
-		fmt.Fprintf(flag.CommandLine.Output(), "    -m, --sitemap\tBuild a sitemap.\n")
-		fmt.Fprintf(flag.CommandLine.Output(), "    -t, --test\t\tRun a test against the URL.\n")
-		fmt.Fprintf(flag.CommandLine.Output(), "    -s, --screenshot\tTake screenshots of a site.\n")
-		fmt.Fprintf(flag.CommandLine.Output(), "    -d, --debug\t\tShow debug logs.\n")
-		fmt.Fprintf(flag.CommandLine.Output(), "    -v, --version\tShow the version number.\n\n")
-	}
-
-	// setup and parse CLI flags
-	var helpFlag,
-		sitemapFlag,
-		testFlag,
-		screenshotFlag,
-		versionFlag,
-		debugFlag,
-		linksFlag,
-		imagesFlag bool
-	var urlFlag string
-	flag.BoolVar(&helpFlag, "help", false, "")
-	flag.BoolVar(&helpFlag, "h", false, "")
-	flag.BoolVar(&sitemapFlag, "sitemap", false, "")
-	flag.BoolVar(&sitemapFlag, "m", false, "")
-	flag.BoolVar(&testFlag, "test", false, "")
-	flag.BoolVar(&testFlag, "t", false, "")
-	flag.BoolVar(&testFlag, "screeshot", false, "")
-	flag.BoolVar(&testFlag, "s", false, "")
-	flag.BoolVar(&versionFlag, "version", false, "")
-	flag.BoolVar(&versionFlag, "v", false, "")
-	flag.BoolVar(&debugFlag, "debug", false, "")
-	flag.BoolVar(&debugFlag, "d", false, "")
-	flag.StringVar(&urlFlag, "url", "", "")
-	flag.BoolVar(&linksFlag, "l", false, "")
-	flag.BoolVar(&linksFlag, "links", false, "")
-	flag.BoolVar(&imagesFlag, "i", false, "")
-	flag.BoolVar(&imagesFlag, "images", false, "")
-	flag.Parse()
-
-	logger := NewLogger(debugFlag)
+	options := NewOptions()
+	logger := NewLogger(options.debug)
 
 	switch {
-	case sitemapFlag:
-		root := isValidURL(urlFlag, logger)
+	case options.sitemap:
+		root := isValidURL(options.url, logger)
 		done := make(chan bool)
-		if !debugFlag { // start sitemap animation
+		if !options.debug { // start sitemap animation
 			go sitemapAnimation(done)
 		}
 		// spawn a spider to build the sitemap
 		spider := NewSpider(logger)
 		sitemap := spider.DoSitemap(root)
-		if !debugFlag { // stop sitemap animation
+		if !options.debug { // stop sitemap animation
 			done <- true
 		}
 		fmt.Printf("\n%s\n", sitemap.String())
 		// exit the program successfully
 		os.Exit(0)
 
-	case testFlag:
-		// define test flag help message
-		flag.Usage = func() {
-			fmt.Fprintf(flag.CommandLine.Output(), "\nUsage: linkt --test [options...] --url <url>\n\n")
-			fmt.Fprintf(flag.CommandLine.Output(), "Options:\n")
-			fmt.Fprintf(flag.CommandLine.Output(), "    -l, --links\t\tTest for broken links.\n")
-			fmt.Fprintf(flag.CommandLine.Output(), "    -i, --images\tTest for missing images.\n\n")
-		}
-
+	case options.test:
 		switch {
-		case linksFlag:
-			fmt.Printf("%s[UNDER CONSTRUCTION]%s -l and --links is not available yet.\n\n", Orange, Reset)
-			root := isValidURL(urlFlag, logger)
+		case options.links:
+			fmt.Printf("%s[UNDER CONSTRUCTION]%s -l and --links is not available yet.\n", Orange, Reset)
+			root := isValidURL(options.url, logger)
 			// spawn a spider to test for broken links
 			spider := NewSpider(logger)
 			spider.DoLinks(root)
 			// exit the program successfully
 			os.Exit(0)
 
-		case imagesFlag:
-			fmt.Printf("%s[UNDER CONSTRUCTION]%s -i and --images is not available yet.\n\n", Orange, Reset)
-			root := isValidURL(urlFlag, logger)
+		case options.images:
+			fmt.Printf("%s[UNDER CONSTRUCTION]%s -i and --images is not available yet.\n", Orange, Reset)
+			root := isValidURL(options.url, logger)
 			// spawn a spider to test for broken links
 			spider := NewSpider(logger)
 			spider.DoImages(root)
@@ -100,16 +52,16 @@ func main() {
 			os.Exit(0)
 		}
 
-	case screenshotFlag:
-		fmt.Printf("%s[UNDER CONSTRUCTION]%s -s and --screenshot is not available yet.\n\n", Orange, Reset)
-		root := isValidURL(urlFlag, logger)
+	case options.screenshot:
+		fmt.Printf("%s[UNDER CONSTRUCTION]%s -s and --screenshot is not available yet.\n", Orange, Reset)
+		root := isValidURL(options.url, logger)
 		// spawn a spider to test for broken links
 		spider := NewSpider(logger)
 		spider.DoScreenshot(root)
 		// exit the program successfully
 		os.Exit(0)
 
-	case versionFlag: // show version
+	case options.version: // show version
 		logo := `
 		
  ___       ___  ________   ___  __    _________
