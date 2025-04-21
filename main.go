@@ -19,7 +19,7 @@ func main() {
 		}
 		// spawn a spider to build the sitemap
 		spider := NewSpider(logger)
-		sitemap := spider.DoSitemap(root)
+		sitemap := spider.BuildSitemap(root)
 		if !options.debug { // stop sitemap animation
 			done <- true
 		}
@@ -34,7 +34,7 @@ func main() {
 			root := isValidURL(options.url, logger)
 			// spawn a spider to test for broken links
 			spider := NewSpider(logger)
-			spider.DoLinks(root)
+			spider.TestLinks(root)
 			// exit the program successfully
 			os.Exit(0)
 
@@ -43,7 +43,7 @@ func main() {
 			root := isValidURL(options.url, logger)
 			// spawn a spider to test for broken links
 			spider := NewSpider(logger)
-			spider.DoImages(root)
+			spider.TestImages(root)
 			// exit the program successfully
 			os.Exit(0)
 
@@ -57,7 +57,7 @@ func main() {
 		root := isValidURL(options.url, logger)
 		// spawn a spider to test for broken links
 		spider := NewSpider(logger)
-		spider.DoScreenshot(root)
+		spider.TakeScreenshots(root)
 		// exit the program successfully
 		os.Exit(0)
 

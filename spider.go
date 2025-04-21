@@ -12,12 +12,6 @@ import (
 	"golang.org/x/net/html"
 )
 
-const ( // actions a spider can take
-	SITEMAP = iota
-	TEST
-	SCREENSHOTS
-)
-
 // A spider with capabilities such as building a sitemap, testing links,
 // and taking screenshots for a site.
 type Spider struct {
@@ -33,7 +27,7 @@ func NewSpider(logger *slog.Logger) *Spider {
 }
 
 // Enables the spider to build a sitemap starting from the root URL.
-func (s *Spider) DoSitemap(root *url.URL) *Sitemap {
+func (s *Spider) BuildSitemap(root *url.URL) *Sitemap {
 	sitemap := NewSitemap(s.logger)
 	page := *NewPage(root)
 	_, err := sitemap.AddRoot(page)
@@ -46,12 +40,21 @@ func (s *Spider) DoSitemap(root *url.URL) *Sitemap {
 		os.Exit(-1)
 	}
 	// start recursively building the sitemap
-	s.build(sitemap, sitemap.Root())
+	s.walk(sitemap, sitemap.Root())
 	return sitemap
 }
 
-// Called on a page and begins crawling therefrom to obtain all anchor tags within the domain of page to build a sitemap.
-func (s *Spider) build(sitemap *Sitemap, node *Node[Page]) {
+// TODO:
+func (s *Spider) TestLinks(root *url.URL) {}
+
+// TODO:
+func (s *Spider) TestImages(root *url.URL) {}
+
+// TODO:
+func (s *Spider) TakeScreenshots(root *url.URL) {}
+
+// Recursively calls on a page and begins crawling therefrom to obtain all anchor tags within the domain of page to build a sitemap.
+func (s *Spider) walk(sitemap *Sitemap, node *Node[Page]) {
 	// get page
 	currentPage := node.GetElement()
 	resp, err := s.client.Do(currentPage.Request())
@@ -88,8 +91,8 @@ func (s *Spider) build(sitemap *Sitemap, node *Node[Page]) {
 
 	// define crawl func
 	var link string
-	var crawl func(*html.Node)
-	crawl = func(n *html.Node) {
+	var step func(*html.Node)
+	step = func(n *html.Node) {
 		if n.Type == html.ElementNode && n.Data == "a" { // node is an anchor tag
 			for _, a := range n.Attr { // iterate anchor tag attributes
 				if a.Key == "href" { // attribute is an href
@@ -111,12 +114,12 @@ func (s *Spider) build(sitemap *Sitemap, node *Node[Page]) {
 			}
 		}
 		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			crawl(c)
+			step(c)
 		}
 	}
 
-	// crawl the page
-	crawl(doc)
+	// step through the page
+	step(doc)
 
 	// populate the tree with Set of internal and external links
 	for p, t := range currentPage.Links() {
@@ -151,16 +154,7 @@ func (s *Spider) build(sitemap *Sitemap, node *Node[Page]) {
 	// call the spider on the child if it has an internal link
 	for _, child := range node.Children() {
 		if child.GetElement().Type() == Internal {
-			s.build(sitemap, child)
+			s.walk(sitemap, child)
 		}
 	}
 }
-
-// TODO:
-func (s *Spider) DoLinks(root *url.URL) {}
-
-// TODO:
-func (s *Spider) DoImages(root *url.URL) {}
-
-// TODO:
-func (s *Spider) DoScreenshot(root *url.URL) {}
