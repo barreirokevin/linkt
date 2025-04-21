@@ -37,20 +37,15 @@ func main() {
 	flag.StringVar(&urlFlag, "url", "", "")
 	flag.Parse()
 
-	// verify url
 	logger := NewLogger(debugFlag)
-	if !isValidURL(urlFlag) {
-		logger.Error("missing or invalid URL", "url", urlFlag)
-		os.Exit(0)
-	}
-	root, err := url.Parse(urlFlag)
-	if err != nil {
-		logger.Error("error parsing URL", "url", urlFlag, "error", err)
-		os.Exit(0)
-	}
 
 	switch {
 	case sitemapFlag:
+		root, err := url.Parse(urlFlag)
+		if err != nil || root.Scheme == "" || root.Host == "" { // verify url
+			logger.Error("missing or invalid URL", "url", urlFlag, "error", err)
+			os.Exit(0)
+		}
 		done := make(chan bool)
 		if !debugFlag { // start sitemap animation
 			go sitemapAnimation(done)
