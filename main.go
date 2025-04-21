@@ -61,9 +61,11 @@ func main() {
 		os.Exit(0)
 
 	case testFlag:
-	// TODO:
+		fmt.Printf("%s[UNDER CONSTRUCTION]%s this feature is not available yet.\n\n", Orange, Reset)
+		// TODO:
 
 	case screenshotFlag:
+		fmt.Printf("%s[UNDER CONSTRUCTION]%s this feature is not available yet.\n\n", Orange, Reset)
 		// TODO:
 
 	case versionFlag: // show version
