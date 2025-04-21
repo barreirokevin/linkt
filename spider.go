@@ -155,3 +155,12 @@ func (s *Spider) build(sitemap *Sitemap, node *Node[Page]) {
 		}
 	}
 }
+
+// TODO:
+func (s *Spider) DoLinks(root *url.URL) {}
+
+// TODO:
+func (s *Spider) DoImages(root *url.URL) {}
+
+// TODO:
+func (s *Spider) DoScreenshot(root *url.URL) {}

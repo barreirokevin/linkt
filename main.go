@@ -52,11 +52,7 @@ func main() {
 
 	switch {
 	case sitemapFlag:
-		root, err := url.Parse(urlFlag)
-		if err != nil || root.Scheme == "" || root.Host == "" { // verify url
-			logger.Error("missing or invalid URL", "url", urlFlag, "error", err)
-			os.Exit(0)
-		}
+		root := isValidURL(urlFlag, logger)
 		done := make(chan bool)
 		if !debugFlag { // start sitemap animation
 			go sitemapAnimation(done)
@@ -83,11 +79,21 @@ func main() {
 		switch {
 		case linksFlag:
 			fmt.Printf("%s[UNDER CONSTRUCTION]%s -l and --links is not available yet.\n\n", Orange, Reset)
-			// TODO:
+			root := isValidURL(urlFlag, logger)
+			// spawn a spider to test for broken links
+			spider := NewSpider(logger)
+			spider.DoLinks(root)
+			// exit the program successfully
+			os.Exit(0)
 
 		case imagesFlag:
 			fmt.Printf("%s[UNDER CONSTRUCTION]%s -i and --images is not available yet.\n\n", Orange, Reset)
-			// TODO:
+			root := isValidURL(urlFlag, logger)
+			// spawn a spider to test for broken links
+			spider := NewSpider(logger)
+			spider.DoImages(root)
+			// exit the program successfully
+			os.Exit(0)
 
 		default: // show help for test option
 			flag.Usage()
@@ -96,7 +102,12 @@ func main() {
 
 	case screenshotFlag:
 		fmt.Printf("%s[UNDER CONSTRUCTION]%s -s and --screenshot is not available yet.\n\n", Orange, Reset)
-		// TODO:
+		root := isValidURL(urlFlag, logger)
+		// spawn a spider to test for broken links
+		spider := NewSpider(logger)
+		spider.DoScreenshot(root)
+		// exit the program successfully
+		os.Exit(0)
 
 	case versionFlag: // show version
 		logo := `
