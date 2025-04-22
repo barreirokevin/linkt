@@ -67,7 +67,9 @@ func (s *Spider) TestImages(root *url.URL) {}
 // TODO:
 func (s *Spider) TakeScreenshots(root *url.URL) {}
 
-// Recursively calls on a page and begins crawling therefrom to obtain all anchor tags within the domain of page to build a sitemap.
+// Enables the spider to recursively walk through the elements on a page. As the spider
+// walks through the elements on the page it builds a sitemap with the anchor tags it
+// encounters. The spider reports its work based on the action specified.
 func (s *Spider) walk(sitemap *Sitemap, node *Node[Page]) {
 	// get page
 	currentPage := node.GetElement()
@@ -144,6 +146,7 @@ func (s *Spider) walk(sitemap *Sitemap, node *Node[Page]) {
 	}
 }
 
+// Step is recursively called in the walk function to visit each anchor tag on the currentPage.
 func (s *Spider) step(n *html.Node, currentPage *Page) {
 	var link string
 	if n.Type == html.ElementNode && n.Data == "a" { // node is an anchor tag
