@@ -78,7 +78,7 @@ func (h *PrettyHandler) Handle(ctx context.Context, r slog.Record) error {
 	}
 	var attrs string
 	r.Attrs(func(a slog.Attr) bool {
-		attrs += fmt.Sprintf("%s%s=%+v%s", Faint, a.Key, a.Value.Any(), ResetFaint)
+		attrs += fmt.Sprintf("%s%s=%+v%s ", Faint, a.Key, a.Value.Any(), ResetFaint)
 		return true
 	})
 	h.l.Println(level, r.Message, attrs)

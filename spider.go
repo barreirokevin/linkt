@@ -45,7 +45,21 @@ func (s *Spider) BuildSitemap(root *url.URL) *Sitemap {
 }
 
 // TODO:
-func (s *Spider) TestLinks(root *url.URL) {}
+func (s *Spider) TestLinks(root *url.URL) {
+	sitemap := NewSitemap(s.logger)
+	page := *NewPage(root)
+	_, err := sitemap.AddRoot(page)
+	if err != nil {
+		s.logger.Error(
+			"error adding root page to the sitemap",
+			"page", page.URL(),
+			"error", err,
+		)
+		os.Exit(-1)
+	}
+	// start recursively building the sitemap
+	s.walk(sitemap, sitemap.Root())
+}
 
 // TODO:
 func (s *Spider) TestImages(root *url.URL) {}
@@ -89,37 +103,8 @@ func (s *Spider) walk(sitemap *Sitemap, node *Node[Page]) {
 		os.Exit(-1)
 	}
 
-	// define crawl func
-	var link string
-	var step func(*html.Node)
-	step = func(n *html.Node) {
-		if n.Type == html.ElementNode && n.Data == "a" { // node is an anchor tag
-			for _, a := range n.Attr { // iterate anchor tag attributes
-				if a.Key == "href" { // attribute is an href
-					if strings.HasPrefix(a.Val, "/") { // href is an internal link
-						link = strings.TrimSuffix(strings.TrimSpace(a.Val), "/")
-						if !s.visited.Contains(link) { // the link was not visited yet
-							(*s.visited)[link] = Internal
-							currentPage.Links()[link] = Internal // add internal link to Set of links
-						}
-					} else if !strings.HasPrefix(a.Val, "#") { // href is an external link
-						link = strings.TrimSuffix(strings.TrimSpace(a.Val), "/")
-						if !s.visited.Contains(link) { // the link was not visited yet
-							(*s.visited)[link] = External
-							currentPage.Links()[link] = External
-						}
-					}
-					break
-				}
-			}
-		}
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			step(c)
-		}
-	}
-
 	// step through the page
-	step(doc)
+	s.step(doc, &currentPage)
 
 	// populate the tree with Set of internal and external links
 	for p, t := range currentPage.Links() {
@@ -151,10 +136,37 @@ func (s *Spider) walk(sitemap *Sitemap, node *Node[Page]) {
 		}
 	}
 
-	// call the spider on the child if it has an internal link
+	// walk on an internal link
 	for _, child := range node.Children() {
 		if child.GetElement().Type() == Internal {
 			s.walk(sitemap, child)
 		}
+	}
+}
+
+func (s *Spider) step(n *html.Node, currentPage *Page) {
+	var link string
+	if n.Type == html.ElementNode && n.Data == "a" { // node is an anchor tag
+		for _, a := range n.Attr { // iterate anchor tag attributes
+			if a.Key == "href" { // attribute is an href
+				if strings.HasPrefix(a.Val, "/") { // href is an internal link
+					link = strings.TrimSuffix(strings.TrimSpace(a.Val), "/")
+					if !s.visited.Contains(link) { // the link was not visited yet
+						(*s.visited)[link] = Internal
+						currentPage.Links()[link] = Internal // add internal link to Set of links
+					}
+				} else if !strings.HasPrefix(a.Val, "#") { // href is an external link
+					link = strings.TrimSuffix(strings.TrimSpace(a.Val), "/")
+					if !s.visited.Contains(link) { // the link was not visited yet
+						(*s.visited)[link] = External
+						currentPage.Links()[link] = External
+					}
+				}
+				break
+			}
+		}
+	}
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		s.step(c, currentPage)
 	}
 }
