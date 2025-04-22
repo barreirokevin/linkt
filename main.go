@@ -18,7 +18,7 @@ func main() {
 			go sitemapAnimation(done)
 		}
 		// spawn a spider to build the sitemap
-		spider := NewSpider(logger)
+		spider := NewSpider(logger, options)
 		sitemap := spider.BuildSitemap(root)
 		if !options.debug { // stop sitemap animation
 			done <- true
@@ -30,10 +30,9 @@ func main() {
 	case options.test:
 		switch {
 		case options.links:
-			fmt.Printf("%s[UNDER CONSTRUCTION]%s -l and --links is not available yet.\n\n", Orange, Reset)
 			root := isValidURL(options.url, logger)
 			// spawn a spider to test for broken links
-			spider := NewSpider(logger)
+			spider := NewSpider(logger, options)
 			spider.TestLinks(root)
 			// exit the program successfully
 			os.Exit(0)
@@ -42,7 +41,7 @@ func main() {
 			fmt.Printf("%s[UNDER CONSTRUCTION]%s -i and --images is not available yet.\n\n", Orange, Reset)
 			root := isValidURL(options.url, logger)
 			// spawn a spider to test for broken links
-			spider := NewSpider(logger)
+			spider := NewSpider(logger, options)
 			spider.TestImages(root)
 			// exit the program successfully
 			os.Exit(0)
@@ -56,7 +55,7 @@ func main() {
 		fmt.Printf("%s[UNDER CONSTRUCTION]%s -s and --screenshot is not available yet.\n\n", Orange, Reset)
 		root := isValidURL(options.url, logger)
 		// spawn a spider to test for broken links
-		spider := NewSpider(logger)
+		spider := NewSpider(logger, options)
 		spider.TakeScreenshots(root)
 		// exit the program successfully
 		os.Exit(0)

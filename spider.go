@@ -18,12 +18,13 @@ type Spider struct {
 	client  *http.Client
 	logger  *slog.Logger
 	visited *Set
+	options *Options
 }
 
 // Returns a new spider with an HTTP client.
-func NewSpider(logger *slog.Logger) *Spider {
+func NewSpider(logger *slog.Logger, options *Options) *Spider {
 	c := &http.Client{}
-	return &Spider{client: c, logger: logger, visited: &Set{}}
+	return &Spider{client: c, logger: logger, visited: &Set{}, options: options}
 }
 
 // Enables the spider to build a sitemap starting from the root URL.
@@ -44,7 +45,7 @@ func (s *Spider) BuildSitemap(root *url.URL) *Sitemap {
 	return sitemap
 }
 
-// TODO:
+// Enables the spider to test a sitemap and report on the HTTP status code for each link.
 func (s *Spider) TestLinks(root *url.URL) {
 	sitemap := NewSitemap(s.logger)
 	page := *NewPage(root)
@@ -87,6 +88,22 @@ func (s *Spider) walk(sitemap *Sitemap, node *Node[Page]) {
 		"page", currentPage.URL(),
 		"status", resp.Status,
 	)
+
+	// display test results
+	if s.options.test && s.options.links {
+		switch status := resp.StatusCode; {
+		case status >= 100 && status <= 199:
+			fmt.Printf("\t%s[%s]%s\t%s\n", Blue, resp.Status, Reset, currentPage.URL())
+		case status >= 200 && status <= 299:
+			fmt.Printf("\t%s[%s]%s\t%s\n", Green, resp.Status, Reset, currentPage.URL())
+		case status >= 300 && status <= 399:
+			fmt.Printf("\t%s[%s]%s\t%s\n", Yellow, resp.Status, Reset, currentPage.URL())
+		case status >= 400 && status <= 499:
+			fmt.Printf("\t%s[%s]%s\t%s\n", Red, resp.Status, Reset, currentPage.URL())
+		case status >= 500 && status <= 599:
+			fmt.Printf("\t%s[%s]%s\t%s\n", Red, resp.Status, Reset, currentPage.URL())
+		}
+	}
 
 	// add root page as internal link to Set of links
 	if reflect.DeepEqual(sitemap.Root(), currentPage) {
