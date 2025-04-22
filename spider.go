@@ -155,9 +155,12 @@ func (s *Spider) walk(sitemap *Sitemap, node *Node[Page]) {
 		}
 	}
 
-	// walk on an internal link
 	for _, child := range node.Children() {
-		if child.GetElement().Type() == Internal {
+		if s.options.sitemap && child.GetElement().Type() == Internal {
+			// walk on an internal link if building a sitemap
+			s.walk(sitemap, child)
+		} else if s.options.test && s.options.links {
+			// walk on an internal or external link if testing for broken links
 			s.walk(sitemap, child)
 		}
 	}
