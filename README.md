@@ -13,14 +13,16 @@ linkt is a command-line tool to perform a variety of actions with a URL, such as
 ## Usage
 
 ```bash
-Usage: linkt [options...] --url <url>
+Usage: linkt [options] <command> [<args>]
+
+Commands:
+        sitemap                 Build a sitemap with URL as the root.
+        test                    Run a test against the URL.
+        screenshot              Take screenshots of all the pages on a site.
+        help <command>          Display help for a command.
 
 Options:
-    -m, --sitemap       Build a sitemap.
-    -t, --test          Test for broken links.
-    -s, --screenshot    Take screenshots of a site.
-    -d, --debug         Show debug logs.
-    -v, --version       Show the version number.
+        -v, --version           Show the version number.
 ```
 
 ## Install
