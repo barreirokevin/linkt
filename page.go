@@ -16,7 +16,7 @@ type Page struct {
 	// HTTP request to GET this page
 	request *http.Request
 	// set of links on this Page
-	links Set
+	links Set[string, int]
 	// The type of a apge, i.e. whther it is an internal page, and external
 	// page, or unknown. Internal is equivlant to integer 0, External is
 	// equivalent to integer 1, and Unknown is equivalent to integer -1.
@@ -30,7 +30,7 @@ func NewPage(link *url.URL) *Page {
 			Method: http.MethodGet,
 			URL:    link,
 		},
-		links: Set{},
+		links: Set[string, int]{},
 		t:     Unknown,
 	}
 }
@@ -48,7 +48,7 @@ func (p Page) Type() int {
 }
 
 // Returns a Set of links in this page.
-func (p Page) Links() Set {
+func (p Page) Links() Set[string, int] {
 	return p.links
 }
 

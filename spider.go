@@ -17,14 +17,14 @@ import (
 type Spider struct {
 	client  *http.Client
 	logger  *slog.Logger
-	visited *Set
+	visited *Set[string, int]
 	options *Options
 }
 
 // Returns a new spider with an HTTP client.
 func NewSpider(logger *slog.Logger, options *Options) *Spider {
 	c := &http.Client{}
-	return &Spider{client: c, logger: logger, visited: &Set{}, options: options}
+	return &Spider{client: c, logger: logger, visited: &Set[string, int]{}, options: options}
 }
 
 // Enables the spider to build a sitemap starting from the root URL.

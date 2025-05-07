@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/xml"
 	"fmt"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 )
@@ -60,4 +63,52 @@ func (s *Sitemap) String() string {
 	// begin preorderIndent with the tree's root
 	preorderIndent(s, s.Root(), -1)
 	return str
+}
+
+// Prints the sitemap to standard out.
+func (s *Sitemap) Print() {
+	fmt.Printf("\n%s\n", s.String())
+}
+
+// Writes each link in the sitemap to an XML file and stores that file at directory dir.
+func (s *Sitemap) XML(dir string) {
+	// create sitemap XML file
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		s.logger.Error("directory not found", "error", err)
+		os.Exit(0)
+	}
+	path := filepath.Join(dir, "sitemap.xml")
+	file, err := os.Create(path)
+	if err != nil {
+		s.logger.Error("sitemap file not created", "error", err)
+		os.Exit(0)
+	}
+	defer file.Close()
+
+	// create Set of all links in the sitemap
+	type url struct {
+		Link string `xml:"loc"`
+	}
+	allLinks := Set[url, int]{} // Set prevents duplicate links
+	s.Preorder(func(s *Node[Page]) {
+		for l, _ := range s.GetElement().Links() {
+			e := url{Link: l}
+			allLinks[e] = 0
+		}
+	})
+
+	// write each entry to the XML file
+	file.WriteString(xml.Header)
+	file.WriteString(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`)
+	file.WriteString("\n")
+	for l, _ := range allLinks {
+		data, err := xml.MarshalIndent(l, "", "  ")
+		if err != nil {
+			s.logger.Error("could not marshal link to XML", "error", err)
+			os.Exit(0)
+		}
+		file.Write(data)
+		file.WriteString("\n")
+	}
+	file.WriteString("</urlset>")
 }
