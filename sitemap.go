@@ -100,17 +100,15 @@ func (s *Sitemap) XML(dir string) {
 	// write each entry to the XML file
 	file.WriteString(xml.Header)
 	file.WriteString(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`)
+	file.WriteString("\n")
 	for l, _ := range allLinks {
 		data, err := xml.MarshalIndent(l, "", "  ")
 		if err != nil {
 			s.logger.Error("could not marshal link to XML", "error", err)
 			os.Exit(0)
 		}
-		_, err = file.Write(data)
-		if err != nil {
-			s.logger.Error("could not write entry to XML file", "error", err)
-			os.Exit(0)
-		}
+		file.Write(data)
+		file.WriteString("\n")
 	}
-	file.WriteString(`</urlset>`)
+	file.WriteString("</urlset>")
 }
