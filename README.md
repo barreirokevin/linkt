@@ -12,7 +12,7 @@ linkt is a command-line tool to perform a variety of actions with a URL, such as
 
 ## Usage
 
-```bash
+```
 Usage: linkt [options] <command> [<args>]
 
 Commands:
@@ -29,24 +29,24 @@ Options:
 
 1. Download the latest source code:
 
-   ```bash
+   ```
    git clone https://github.com/barreirokevin/linkt.git
    ```
 
 1. Navigate to the linkt directroy:
 
-   ```bash
+   ```
    cd <path-to-linkt>
    ```
 
 1. Build the source code:
 
-   ```bash
+   ```
    go build -o bin/linkt *.go
    ```
 
 1. Execute linkt:
 
-   ```bash
+   ```
    ./bin/linkt
    ```
