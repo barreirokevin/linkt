@@ -149,7 +149,7 @@ func (app *App) Test() {
 		os.Exit(0)
 
 	default:
-		helpMsg := "\bUsage: linkt [options] test <url>\n\n"
+		helpMsg := "\nUsage: linkt [options] test <url>\n\n"
 		helpMsg += "Options:\n"
 		helpMsg += "\t-l, --links\t\tTest for broken links.\n"
 		helpMsg += "\t-i, --images\t\tTest for missing images.\n"
