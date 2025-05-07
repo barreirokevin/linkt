@@ -55,7 +55,7 @@ func NewOptions() *Options {
 	flag.BoolVar(&options.images, "images", false, "")
 	flag.BoolVar(&options.xml, "xml", false, "")
 	flag.BoolVar(&options.print, "print", false, "")
-	flag.StringVar(&options.directory, "directroy", "", "")
+	flag.StringVar(&options.directory, "directory", "", "")
 	flag.StringVar(&options.directory, "f", "", "")
 	flag.Parse()
 
