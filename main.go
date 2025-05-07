@@ -12,20 +12,48 @@ func main() {
 
 	switch {
 	case options.sitemap:
-		root := isValidURL(options.url, logger)
-		done := make(chan bool)
-		if !options.debug { // start sitemap animation
-			go sitemapAnimation(done)
+		switch {
+		case options.print:
+			root := isValidURL(options.url, logger)
+			done := make(chan bool)
+			if !options.debug { // start sitemap animation
+				go sitemapAnimation(done)
+			}
+			// spawn a spider to build the sitemap
+			spider := NewSpider(logger, options)
+			sitemap := spider.BuildSitemap(root)
+			if !options.debug { // stop sitemap animation
+				done <- true
+			}
+			sitemap.Print()
+			// exit the program successfully
+			os.Exit(0)
+
+		case options.xml:
+			if options.directory == "" {
+				flag.Usage()
+				os.Exit(0)
+			}
+			root := isValidURL(options.url, logger)
+			done := make(chan bool)
+			if !options.debug { // start sitemap animation
+				go sitemapAnimation(done)
+			}
+			// spawn a spider to build the sitemap
+			spider := NewSpider(logger, options)
+			sitemap := spider.BuildSitemap(root)
+			sitemap.XML(options.directory)
+			if !options.debug { // stop sitemap animation
+				done <- true
+			}
+
+			// exit the program successfully
+			os.Exit(0)
+
+		default: // show help for sitemap options
+			flag.Usage()
+			os.Exit(0)
 		}
-		// spawn a spider to build the sitemap
-		spider := NewSpider(logger, options)
-		sitemap := spider.BuildSitemap(root)
-		if !options.debug { // stop sitemap animation
-			done <- true
-		}
-		fmt.Printf("\n%s\n", sitemap.String())
-		// exit the program successfully
-		os.Exit(0)
 
 	case options.test:
 		switch {
@@ -46,7 +74,7 @@ func main() {
 			// exit the program successfully
 			os.Exit(0)
 
-		default: // show help for test option
+		default: // show help for test options
 			flag.Usage()
 			os.Exit(0)
 		}

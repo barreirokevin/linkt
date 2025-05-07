@@ -74,9 +74,10 @@ func (t *Tree[T]) Depth(n *Node[T]) int {
 	}
 }
 
-// Returns an array that contains the nodes in the tree after having traversed it
-// with a preorder algorithm.
-func (t *Tree[T]) Preorder() []*Node[T] {
+// Performs a preorder traversal on the tree and calls visit on each node.
+// This functions also returns a slice of the nodes in the tree after the
+// preorder traversal is complete.
+func (t *Tree[T]) Preorder(visit func(s *Node[T])) []*Node[T] {
 	snapshot := []*Node[T]{}
 
 	// define recursive preorder traversal algorithm
@@ -84,6 +85,7 @@ func (t *Tree[T]) Preorder() []*Node[T] {
 	preorderSubtree = func(n *Node[T], snapshot []*Node[T]) {
 		// preorder requires adding n before exploring subtrees
 		snapshot = append(snapshot, n)
+		visit(n)
 		for _, c := range n.Children() {
 			preorderSubtree(c, snapshot)
 		}
