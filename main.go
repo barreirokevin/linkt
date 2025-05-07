@@ -25,7 +25,7 @@ func main() {
 			if !options.debug { // stop sitemap animation
 				done <- true
 			}
-			fmt.Printf("\n%s\n", sitemap.String())
+			sitemap.Print()
 			// exit the program successfully
 			os.Exit(0)
 
@@ -41,12 +41,11 @@ func main() {
 			}
 			// spawn a spider to build the sitemap
 			spider := NewSpider(logger, options)
-			_ = spider.BuildSitemap(root)
+			sitemap := spider.BuildSitemap(root)
+			sitemap.XML(options.directory)
 			if !options.debug { // stop sitemap animation
 				done <- true
 			}
-
-			// TODO: output sitemap to XML file in user-provided directory
 
 			// exit the program successfully
 			os.Exit(0)
