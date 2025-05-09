@@ -81,7 +81,7 @@ func (app *App) Sitemap() {
 			go sitemapAnimation(done)
 		}
 		spider := NewSpider(app)
-		sitemap := spider.BuildSitemap(root)
+		sitemap := spider.Crawl(root)
 		if !app.options.debug {
 			done <- true
 		}
@@ -106,7 +106,7 @@ func (app *App) Sitemap() {
 			go sitemapAnimation(done)
 		}
 		spider := NewSpider(app)
-		sitemap := spider.BuildSitemap(root)
+		sitemap := spider.Crawl(root)
 		sitemap.XML(app.options.directory)
 		if !app.options.debug {
 			done <- true
@@ -134,7 +134,7 @@ func (app *App) Test() {
 			os.Exit(0)
 		}
 		spider := NewSpider(app)
-		spider.TestLinks(root)
+		spider.Crawl(root)
 		os.Exit(0)
 
 	case app.options.images:
@@ -145,7 +145,7 @@ func (app *App) Test() {
 			os.Exit(0)
 		}
 		spider := NewSpider(app)
-		spider.TestImages(root)
+		spider.Crawl(root)
 		os.Exit(0)
 
 	default:
@@ -168,14 +168,13 @@ func (app *App) Screenshot() {
 		fmt.Print(helpMsg)
 		os.Exit(0)
 	}
-	fmt.Printf("%s[UNDER CONSTRUCTION]%s -s and --screenshot is not available yet.\n\n", Orange, Reset)
 	root, err := url.Parse(app.url)
 	if err != nil || root.Scheme == "" || root.Host == "" {
 		app.logger.Error("missing or invalid URL", "url", app.url, "error", err)
-		os.Exit(0)
+		os.Exit(1)
 	}
 	spider := NewSpider(app)
-	spider.TakeScreenshots(root)
+	spider.Crawl(root)
 	os.Exit(0)
 }
 
