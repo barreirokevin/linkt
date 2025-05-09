@@ -7,7 +7,6 @@ import (
 	"log"
 	"log/slog"
 	"os"
-	"time"
 )
 
 // ANSI color codes
@@ -83,22 +82,4 @@ func (h *PrettyHandler) Handle(ctx context.Context, r slog.Record) error {
 	})
 	h.l.Println(level, r.Message, attrs)
 	return nil
-}
-
-// Prints text to stdout in such a manner that it gives the impression the text is moving
-// while Spider is building the sitemap.
-func sitemapAnimation(done chan bool) {
-	for {
-		select {
-		case <-done:
-			fmt.Printf("\n%s[SUCCESS]%s sitemap was created!\n", Green, Reset)
-			return
-		default:
-			dots := []string{".  ", ".. ", "...", " ..", "  .", "   "}
-			for _, s := range dots {
-				fmt.Printf("\r%s[PENDING]%s collecting links%s%s%s", Orange, Reset, Orange, s, Reset)
-				time.Sleep((1 * time.Second) / 4)
-			}
-		}
-	}
 }
