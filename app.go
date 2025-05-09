@@ -99,6 +99,7 @@ func (app *App) Sitemap() {
 			helpMsg = "\nUsage: linkt --xml --dir <path> [options] sitemap <url>\n\n"
 			helpMsg += "Options:\n"
 			helpMsg += "\t--dir <path>\t\tThe directory to store the XML file.\n"
+			helpMsg += "\t--delay <milliseconds>\t\tThe amount of time to delay each HTTP request.\n"
 			helpMsg += "\t--debug\t\t\tShow debug logs.\n\n"
 			fmt.Print(helpMsg)
 			os.Exit(0)
@@ -125,6 +126,7 @@ func (app *App) Sitemap() {
 		helpMsg += "\t--xml\t\t\tSave the sitemap to an XML file.\n"
 		helpMsg += "\t--print\t\t\tPrint the sitemap to standard output.\n"
 		helpMsg += "\t--dir <path>\t\tThe directory to store the XML file.\n"
+		helpMsg += "\t--delay <milliseconds>\t\tThe amount of time to delay each HTTP request.\n"
 		helpMsg += "\t--debug\t\t\tShow debug logs.\n\n"
 		fmt.Print(helpMsg)
 		os.Exit(0)
@@ -160,6 +162,7 @@ func (app *App) Test() {
 		helpMsg += "Options:\n"
 		helpMsg += "\t-l, --links\t\tTest for broken links.\n"
 		helpMsg += "\t-i, --images\t\tTest for missing images.\n"
+		helpMsg += "\t--delay <milliseconds>\t\tThe amount of time to delay each HTTP request.\n"
 		helpMsg += "\t--debug\t\t\tShow debug logs.\n\n"
 		fmt.Print(helpMsg)
 		os.Exit(0)
@@ -171,6 +174,7 @@ func (app *App) Screenshot() {
 	if app.options.directory == "" {
 		helpMsg := "\nUsage: linkt --dir <path> [options] screenshot <url>\n\n"
 		helpMsg += "Options:\n"
+		helpMsg += "\t--delay <milliseconds>\t\tThe amount of time to delay each HTTP request.\n"
 		helpMsg += "\t--debug\t\t\tShow debug logs.\n\n"
 		fmt.Print(helpMsg)
 		os.Exit(0)
@@ -214,6 +218,7 @@ func (app *App) Help() {
 		helpMsg += "\t--xml\t\t\tSave the sitemap to an XML file.\n"
 		helpMsg += "\t--print\t\t\tPrint the sitemap to standard output.\n"
 		helpMsg += "\t--dir <path>\t\tThe directory to store the XML file.\n"
+		helpMsg += "\t--delay <milliseconds>\t\tThe amount of time to delay each HTTP request.\n"
 		helpMsg += "\t--debug\t\t\tShow debug logs.\n\n"
 
 	case TEST:
@@ -221,11 +226,13 @@ func (app *App) Help() {
 		helpMsg += "Options:\n"
 		helpMsg += "\t-l, --links\t\tTest for broken links.\n"
 		helpMsg += "\t-i, --images\t\tTest for missing images.\n"
+		helpMsg += "\t--delay <milliseconds>\t\tThe amount of time to delay each HTTP request.\n"
 		helpMsg += "\t--debug\t\t\tShow debug logs.\n\n"
 
 	case SCREENSHOT:
 		helpMsg = "\nUsage: linkt --dir <path> [options] screenshot <url>\n\n"
 		helpMsg += "Options:\n"
+		helpMsg += "\t--delay <milliseconds>\t\tThe amount of time to delay each HTTP request.\n"
 		helpMsg += "\t--debug\t\t\tShow debug logs.\n\n"
 
 	case HELP:
