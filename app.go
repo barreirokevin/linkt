@@ -8,6 +8,12 @@ import (
 	"strings"
 )
 
+// String for each command
+const SITEMAP = "sitemap"
+const TEST = "test"
+const SCREENSHOT = "screenshot"
+const HELP = "help"
+
 // Represents an instance of linkt.
 type App struct {
 	command string
@@ -39,13 +45,13 @@ func NewApp() *App {
 // Runs the app with its services.
 func (app *App) Run() {
 	switch app.command {
-	case "sitemap":
+	case SITEMAP:
 		app.Sitemap()
-	case "test":
+	case TEST:
 		app.Test()
-	case "screenshot":
+	case SCREENSHOT:
 		app.Screenshot()
-	case "help":
+	case HELP:
 		app.Help()
 	default:
 		switch {
@@ -194,7 +200,7 @@ func (app *App) Help() {
 
 	var helpMsg string
 	switch helpCmd {
-	case "sitemap":
+	case SITEMAP:
 		helpMsg = "\nUsage: linkt [options] sitemap <url>\n\n"
 		helpMsg += "Options:\n"
 		helpMsg += "\t--xml\t\t\tSave the sitemap to an XML file.\n"
@@ -202,19 +208,19 @@ func (app *App) Help() {
 		helpMsg += "\t--dir <path>\t\tThe directory to store the XML file.\n"
 		helpMsg += "\t--debug\t\t\tShow debug logs.\n\n"
 
-	case "test":
+	case TEST:
 		helpMsg = "\nUsage: linkt [options] test <url>\n\n"
 		helpMsg += "Options:\n"
 		helpMsg += "\t-l, --links\t\tTest for broken links.\n"
 		helpMsg += "\t-i, --images\t\tTest for missing images.\n"
 		helpMsg += "\t--debug\t\t\tShow debug logs.\n\n"
 
-	case "screenshot":
+	case SCREENSHOT:
 		helpMsg = "\nUsage: linkt --dir <path> [options] screenshot <url>\n\n"
 		helpMsg += "Options:\n"
 		helpMsg += "\t--debug\t\t\tShow debug logs.\n\n"
 
-	case "help":
+	case HELP:
 		fallthrough
 	default:
 		helpMsg = "\nUsage: linkt [options] <command> [<args>]\n\n"

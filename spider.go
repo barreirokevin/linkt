@@ -134,13 +134,13 @@ func (spider *Spider) walk(sitemap *Sitemap, node *Node[Page]) {
 	}
 
 	for _, child := range node.Children() {
-		if (spider.app.command == "sitemap" || spider.app.command == "screenshot") &&
+		if (spider.app.command == SITEMAP || spider.app.command == SCREENSHOT) &&
 			child.GetElement().Type() == Internal {
 			// if building a sitemap
 			// or taking screenshots
 			// then walk on an internal link
 			spider.walk(sitemap, child)
-		} else if spider.app.command == "test" && spider.app.options.links {
+		} else if spider.app.command == TEST && spider.app.options.links {
 			// walk on an internal or external link if testing for broken links
 			spider.walk(sitemap, child)
 		}
@@ -179,7 +179,7 @@ func (spider *Spider) step(n *html.Node) {
 // when the app was executed.
 func (spider *Spider) execute() {
 	switch spider.app.command {
-	case "test":
+	case TEST:
 		switch {
 		case spider.app.options.links:
 			switch status := spider.current.response.StatusCode; {
@@ -228,7 +228,7 @@ func (spider *Spider) execute() {
 
 		}
 
-	case "screenshot":
+	case SCREENSHOT:
 		// create screenshot file
 		processedURL := strings.ReplaceAll(spider.current.page.URL(), "/", "-")
 		processedURL = strings.ReplaceAll(processedURL, ":", "")
