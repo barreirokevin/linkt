@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 // String for each command
@@ -84,7 +85,7 @@ func (app *App) Sitemap() {
 		}
 		done := make(chan bool)
 		if !app.options.debug {
-			go sitemapAnimation(done)
+			go app.Progress(done)
 		}
 		spider := NewSpider(app)
 		sitemap := spider.Crawl(root)
@@ -109,7 +110,7 @@ func (app *App) Sitemap() {
 		}
 		done := make(chan bool)
 		if !app.options.debug {
-			go sitemapAnimation(done)
+			go app.Progress(done)
 		}
 		spider := NewSpider(app)
 		sitemap := spider.Crawl(root)
@@ -184,8 +185,15 @@ func (app *App) Screenshot() {
 		app.logger.Error("missing or invalid URL", "url", app.url, "error", err)
 		os.Exit(1)
 	}
+	done := make(chan bool)
+	if !app.options.debug {
+		go app.Progress(done)
+	}
 	spider := NewSpider(app)
 	spider.Crawl(root)
+	if !app.options.debug {
+		done <- true
+	}
 	os.Exit(0)
 }
 
@@ -250,4 +258,53 @@ func (app *App) Version() {
 
 		`
 	fmt.Printf("%s\n", version)
+}
+
+// Prints text to stdout in such a manner that it gives the impression the text is moving
+// while the spider is working.
+func (app *App) Progress(done chan bool) {
+	for {
+		switch app.command {
+		case SITEMAP:
+			select {
+			case <-done:
+				fmt.Printf(
+					"\n%s[SUCCESS]%s sitemap was created!\n",
+					Green, Reset)
+				if app.options.xml {
+					fmt.Printf(
+						"\nsitemap was saved to %s%s/sitemap.xml%s\n\n",
+						Green, app.options.directory, Reset)
+				}
+				return
+			default:
+				dots := []string{".  ", ".. ", "...", " ..", "  .", "   "}
+				for _, s := range dots {
+					fmt.Printf(
+						"\r%s[PENDING]%s collecting links%s%s%s",
+						Orange, Reset, Orange, s, Reset)
+					time.Sleep((1 * time.Second) / 4)
+				}
+			}
+		case SCREENSHOT:
+			select {
+			case <-done:
+				fmt.Printf(
+					"\n%s[SUCCESS]%s screenshots were taken!\n",
+					Green, Reset)
+				fmt.Printf(
+					"\nscreenshots were saved to %s%s%s\n\n",
+					Green, app.options.directory, Reset)
+				return
+			default:
+				dots := []string{".  ", ".. ", "...", " ..", "  .", "   "}
+				for _, s := range dots {
+					fmt.Printf(
+						"\r%s[PENDING]%s taking screenshots%s%s%s",
+						Orange, Reset, Orange, s, Reset)
+					time.Sleep((1 * time.Second) / 4)
+				}
+			}
+		}
+	}
 }
