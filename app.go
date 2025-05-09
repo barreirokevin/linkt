@@ -168,6 +168,11 @@ func (app *App) Screenshot() {
 		fmt.Print(helpMsg)
 		os.Exit(0)
 	}
+	// create directory to store screenshots
+	if err := os.MkdirAll(app.options.directory, os.ModePerm); err != nil {
+		app.logger.Error("directory not found", "error", err)
+		os.Exit(1)
+	}
 	root, err := url.Parse(app.url)
 	if err != nil || root.Scheme == "" || root.Host == "" {
 		app.logger.Error("missing or invalid URL", "url", app.url, "error", err)

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 
@@ -133,8 +134,11 @@ func (spider *Spider) walk(sitemap *Sitemap, node *Node[Page]) {
 	}
 
 	for _, child := range node.Children() {
-		if spider.app.command == "sitemap" && child.GetElement().Type() == Internal {
-			// walk on an internal link if building a sitemap
+		if (spider.app.command == "sitemap" || spider.app.command == "screenshot") &&
+			child.GetElement().Type() == Internal {
+			// if building a sitemap
+			// or taking screenshots
+			// then walk on an internal link
 			spider.walk(sitemap, child)
 		} else if spider.app.command == "test" && spider.app.options.links {
 			// walk on an internal or external link if testing for broken links
@@ -225,36 +229,51 @@ func (spider *Spider) execute() {
 		}
 
 	case "screenshot":
+		// create screenshot file
+		processedURL := strings.ReplaceAll(spider.current.page.URL(), "/", "-")
+		processedURL = strings.ReplaceAll(processedURL, ":", "")
+		filename := fmt.Sprintf("%s.jpeg", processedURL)
+		path := filepath.Join(spider.app.options.directory, filename)
+		file, err := os.Create(path)
+		if err != nil {
+			spider.app.logger.Error(
+				"error creating image file",
+				"error", err,
+				"filename", filename,
+			)
+			os.Exit(1)
+		}
+		defer file.Close()
+		// navigate to page and take a screenshot
 		ctx, cancel := chromedp.NewContext(
 			context.Background(),
 			// Uncomment to see browser UI (headless=false)
 			// chromedp.WithDebugf(log.Printf),
 		)
 		defer cancel()
-		// Create screenshot.png file
-		screenshotFile := "test_screenshot.jpeg"
-		file, err := os.Create(screenshotFile)
-		if err != nil {
-			spider.app.logger.Error("error creating image file", "error", err)
-			os.Exit(1)
-		}
-		defer file.Close()
-		// Navigate to website and take a screenshot
 		var buf []byte
 		err = chromedp.Run(ctx,
-			chromedp.Navigate("https://www.google.com"),
+			chromedp.Navigate(spider.current.page.URL()),
 			// Wait until page is fully loaded
 			chromedp.WaitVisible("body", chromedp.ByQuery),
 			// Take a screenshot of the entire page
 			chromedp.FullScreenshot(&buf, 90),
 		)
 		if err != nil {
-			spider.app.logger.Error("error running chromedp", "error", err)
+			spider.app.logger.Error(
+				"error running chromedp",
+				"error", err,
+				"url", spider.current.page.URL(),
+			)
 			os.Exit(1)
 		}
-		// Write the screenshot to file
+		// write the screenshot to file
 		if _, err := file.Write(buf); err != nil {
-			spider.app.logger.Error("error writing data to image file", "error", err)
+			spider.app.logger.Error(
+				"error writing data to image file",
+				"error", err,
+				"filename", filename,
+			)
 		}
 	}
 }
