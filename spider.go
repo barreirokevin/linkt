@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/chromedp/chromedp"
 	"golang.org/x/net/html"
@@ -28,7 +29,9 @@ type Spider struct {
 
 // Returns a new spider with an HTTP client.
 func NewSpider(app *App) *Spider {
-	c := &http.Client{}
+	c := &http.Client{
+		Timeout: 10 * time.Second,
+	}
 	return &Spider{
 		client:  c,
 		app:     app,
@@ -65,6 +68,11 @@ func (spider *Spider) walk(sitemap *Sitemap, node *Node[Page]) {
 	// get page
 	spider.current.page = node.GetElement()
 	var err error
+	// delay the http request
+	// TODO: This needs to be handled differently if the sitemap is built
+	// concurrently because time.Sleep() blocks the main goroutine.
+	delay := time.Duration(spider.app.options.delay) * time.Millisecond
+	time.Sleep(delay)
 	spider.current.response, err = spider.client.Do(spider.current.page.Request())
 	if err != nil {
 		spider.app.logger.Error(

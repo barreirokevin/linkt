@@ -11,6 +11,7 @@ type Options struct {
 	xml       bool
 	print     bool
 	directory string
+	delay     int
 }
 
 // Creates and returns Options which contains the values specified.
@@ -27,6 +28,7 @@ func NewOptions() *Options {
 	flag.BoolVar(&options.xml, "xml", false, "")
 	flag.BoolVar(&options.print, "print", false, "")
 	flag.StringVar(&options.directory, "dir", "", "")
+	flag.IntVar(&options.delay, "delay", 0, "")
 	flag.Parse()
 	return options
 }
