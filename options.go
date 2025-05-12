@@ -12,6 +12,7 @@ type Options struct {
 	print     bool
 	directory string
 	delay     int
+	json      bool
 }
 
 // Creates and returns Options which contains the values specified.
@@ -26,6 +27,7 @@ func NewOptions() *Options {
 	flag.BoolVar(&options.images, "i", false, "")
 	flag.BoolVar(&options.images, "images", false, "")
 	flag.BoolVar(&options.xml, "xml", false, "")
+	flag.BoolVar(&options.json, "json", false, "")
 	flag.BoolVar(&options.print, "print", false, "")
 	flag.StringVar(&options.directory, "dir", "", "")
 	flag.IntVar(&options.delay, "delay", 0, "")

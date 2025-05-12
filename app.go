@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -21,6 +23,13 @@ type App struct {
 	url     string
 	options *Options
 	logger  *slog.Logger
+	JSON    []Record `json:"results"`
+}
+
+// Represents a record in the JSON file with test results.
+type Record struct {
+	URL    string `json:"url"`
+	Status string `json:"status"`
 }
 
 // Creates and returns a new app with the services needed to run it.
@@ -38,7 +47,7 @@ func NewApp() *App {
 		url = strings.TrimSpace(url)
 	}
 	options := NewOptions()
-	app := &App{command: command, options: options, url: url}
+	app := &App{command: command, options: options, url: url, JSON: []Record{}}
 	app.logger = NewLogger(options.debug)
 	return app
 }
@@ -78,7 +87,7 @@ func (app *App) Sitemap() {
 	helpMsg := ""
 	switch {
 	case app.options.print:
-		root, err := url.Parse(app.url)
+		root, err := url.Parse(strings.TrimSuffix(app.url, "/"))
 		if err != nil || root.Scheme == "" || root.Host == "" {
 			app.logger.Error("missing or invalid URL", "url", app.url, "error", err)
 			os.Exit(0)
@@ -98,13 +107,12 @@ func (app *App) Sitemap() {
 		if app.options.directory == "" {
 			helpMsg = "\nUsage: linkt --xml --dir <path> [options] sitemap <url>\n\n"
 			helpMsg += "Options:\n"
-			helpMsg += "\t--dir <path>\t\tThe directory to store the XML file.\n"
 			helpMsg += "\t--delay <milliseconds>\t\tThe amount of time to delay each HTTP request.\n"
 			helpMsg += "\t--debug\t\t\tShow debug logs.\n\n"
 			fmt.Print(helpMsg)
 			os.Exit(0)
 		}
-		root, err := url.Parse(app.url)
+		root, err := url.Parse(strings.TrimSuffix(app.url, "/"))
 		if err != nil || root.Scheme == "" || root.Host == "" {
 			app.logger.Error("missing or invalid URL", "url", app.url, "error", err)
 			os.Exit(0)
@@ -135,20 +143,69 @@ func (app *App) Sitemap() {
 
 // Tests a site for broken links, namely links that return a 4xx or 5xx HTTP error.
 func (app *App) Test() {
+	helpMsg := ""
+	var err error
+	var file *os.File
 	switch {
 	case app.options.links:
-		root, err := url.Parse(app.url)
+		if app.options.json && app.options.directory == "" {
+			helpMsg = "\nUsage: linkt --links --json --dir <path> [options] test <url>\n\n"
+			helpMsg += "Options:\n"
+			helpMsg += "\t--delay <milliseconds>\t\tThe amount of time to delay each HTTP request.\n"
+			helpMsg += "\t--debug\t\t\tShow debug logs.\n\n"
+			fmt.Print(helpMsg)
+			os.Exit(0)
+		} else if app.options.json && app.options.directory != "" {
+			// create directory and file to store json file
+			if err := os.MkdirAll(app.options.directory, os.ModePerm); err != nil {
+				app.logger.Error("directory not found", "error", err)
+				os.Exit(1)
+			}
+			processedURL := strings.ReplaceAll(app.url, "/", "-")
+			processedURL = strings.ReplaceAll(processedURL, ":", "")
+			filename := fmt.Sprintf("%s.json", processedURL)
+			path := filepath.Join(app.options.directory, filename)
+			file, err = os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+			if err != nil {
+				app.logger.Error(
+					"error creating JSON file",
+					"error", err,
+					"filename", filename,
+				)
+				os.Exit(1)
+			}
+			defer file.Close()
+		}
+		root, err := url.Parse(strings.TrimSuffix(app.url, "/"))
 		if err != nil || root.Scheme == "" || root.Host == "" {
 			app.logger.Error("missing or invalid URL", "url", app.url, "error", err)
 			os.Exit(0)
 		}
 		spider := NewSpider(app)
 		spider.Crawl(root)
+		if app.options.json {
+			data, err := json.Marshal(app.JSON)
+			if err != nil {
+				app.logger.Error("error encoding the test results into JSON", "error", err)
+				os.Exit(1)
+			}
+			file.WriteString(fmt.Sprintf(`{"root":"%s","results":`, root.String()))
+			file.Write(data)
+			file.WriteString("}")
+		}
 		os.Exit(0)
 
 	case app.options.images:
+		if app.options.json && app.options.directory == "" {
+			helpMsg = "\nUsage: linkt --images --json --dir <path> [options] test <url>\n\n"
+			helpMsg += "Options:\n"
+			helpMsg += "\t--delay <milliseconds>\t\tThe amount of time to delay each HTTP request.\n"
+			helpMsg += "\t--debug\t\t\tShow debug logs.\n\n"
+			fmt.Print(helpMsg)
+			os.Exit(0)
+		}
 		fmt.Printf("%s[UNDER CONSTRUCTION]%s -i and --images is not available yet.\n\n", Orange, Reset)
-		root, err := url.Parse(app.url)
+		root, err := url.Parse(strings.TrimSuffix(app.url, "/"))
 		if err != nil || root.Scheme == "" || root.Host == "" {
 			app.logger.Error("missing or invalid URL", "url", app.url, "error", err)
 			os.Exit(0)
@@ -158,10 +215,12 @@ func (app *App) Test() {
 		os.Exit(0)
 
 	default:
-		helpMsg := "\nUsage: linkt [options] test <url>\n\n"
+		helpMsg = "\nUsage: linkt [options] test <url>\n\n"
 		helpMsg += "Options:\n"
 		helpMsg += "\t-l, --links\t\tTest for broken links.\n"
 		helpMsg += "\t-i, --images\t\tTest for missing images.\n"
+		helpMsg += "\t--json\t\t\tSave the test results to a JSON file.\n"
+		helpMsg += "\t--dir <path>\t\tThe directory to store the JSON file.\n"
 		helpMsg += "\t--delay <milliseconds>\t\tThe amount of time to delay each HTTP request.\n"
 		helpMsg += "\t--debug\t\t\tShow debug logs.\n\n"
 		fmt.Print(helpMsg)
@@ -184,7 +243,7 @@ func (app *App) Screenshot() {
 		app.logger.Error("directory not found", "error", err)
 		os.Exit(1)
 	}
-	root, err := url.Parse(app.url)
+	root, err := url.Parse(strings.TrimSuffix(app.url, "/"))
 	if err != nil || root.Scheme == "" || root.Host == "" {
 		app.logger.Error("missing or invalid URL", "url", app.url, "error", err)
 		os.Exit(1)
