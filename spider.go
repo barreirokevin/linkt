@@ -47,6 +47,7 @@ func NewSpider(app *App) *Spider {
 func (spider *Spider) Crawl(root *url.URL) *Sitemap {
 	sitemap := NewSitemap(spider.app.logger)
 	page := *NewPage(root)
+	page.SetType(Internal)
 	_, err := sitemap.AddRoot(page)
 	if err != nil {
 		spider.app.logger.Error(
@@ -68,6 +69,12 @@ func (spider *Spider) walk(sitemap *Sitemap, node *Node[Page]) {
 	// get page
 	spider.current.page = node.GetElement()
 	var err error
+	// verify page URL contains valid URL
+	url, err := url.Parse(spider.current.page.URL())
+	if err != nil || url.Scheme == "" || url.Host == "" {
+		spider.app.logger.Info("invalid URL", "url", url)
+		return // skip the remaining code
+	}
 	// delay the http request
 	// TODO: This needs to be handled differently if the sitemap is built
 	// concurrently because time.Sleep() blocks the main goroutine.
@@ -90,6 +97,12 @@ func (spider *Spider) walk(sitemap *Sitemap, node *Node[Page]) {
 
 	// execute command on page
 	spider.execute()
+
+	// return early if node is external
+	// we don't need to scrape anchor tags from an external node
+	if node.GetElement().Type() != Internal {
+		return
+	}
 
 	// add root page as internal link to Set of links
 	if reflect.DeepEqual(sitemap.Root(), spider.current.page) {
@@ -142,16 +155,7 @@ func (spider *Spider) walk(sitemap *Sitemap, node *Node[Page]) {
 	}
 
 	for _, child := range node.Children() {
-		if (spider.app.command == SITEMAP || spider.app.command == SCREENSHOT) &&
-			child.GetElement().Type() == Internal {
-			// if building a sitemap
-			// or taking screenshots
-			// then walk on an internal link
-			spider.walk(sitemap, child)
-		} else if spider.app.command == TEST && spider.app.options.links {
-			// walk on an internal or external link if testing for broken links
-			spider.walk(sitemap, child)
-		}
+		spider.walk(sitemap, child)
 	}
 }
 
@@ -174,7 +178,7 @@ func (spider *Spider) step(n *html.Node) {
 						spider.current.page.Links()[link] = External
 					}
 				}
-				break
+				break // skip the remaining attributes
 			}
 		}
 	}
@@ -190,6 +194,7 @@ func (spider *Spider) execute() {
 	case TEST:
 		switch {
 		case spider.app.options.links:
+			// print link test result to standard out
 			switch status := spider.current.response.StatusCode; {
 			case status >= 100 && status <= 199:
 				fmt.Printf(
@@ -227,11 +232,15 @@ func (spider *Spider) execute() {
 					Reset,
 					spider.current.page.URL())
 			}
+			if spider.app.options.json {
+				r := Record{
+					URL:    spider.current.page.URL(),
+					Status: spider.current.response.Status,
+				}
+				spider.app.JSON = append(spider.app.JSON, r)
+			}
 
 		case spider.app.options.images:
-			// TODO:
-
-		default:
 			// TODO:
 
 		}
