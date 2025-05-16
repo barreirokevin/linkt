@@ -66,36 +66,9 @@ func (spider *Spider) Crawl(root *url.URL) *Sitemap {
 // walks through the elements on the page it builds a sitemap with the anchor tags it
 // encounters. The spider reports its work based on the action specified.
 func (spider *Spider) walk(sitemap *Sitemap, node *Node[Page]) {
-	// get page
+	// get page and execute an action
 	spider.current.page = node.GetElement()
-	var err error
-	// verify page URL contains valid URL
-	url, err := url.Parse(spider.current.page.URL())
-	if err != nil || url.Scheme == "" || url.Host == "" {
-		spider.app.logger.Info("invalid URL", "url", url)
-		return // skip the remaining code
-	}
-	// delay the http request
-	// TODO: This needs to be handled differently if the sitemap is built
-	// concurrently because time.Sleep() blocks the main goroutine.
-	delay := time.Duration(spider.app.options.delay) * time.Millisecond
-	time.Sleep(delay)
-	spider.current.response, err = spider.client.Do(spider.current.page.Request())
-	if err != nil {
-		spider.app.logger.Error(
-			"error getting the page",
-			"page", spider.current.page.URL(),
-			"error", err,
-		)
-		os.Exit(0)
-	}
-	spider.app.logger.Info(
-		"got the page",
-		"page", spider.current.page.URL(),
-		"status", spider.current.response.Status,
-	)
-
-	// execute command on page
+	spider.fetch()
 	spider.execute()
 
 	// return early if node is external
@@ -154,6 +127,7 @@ func (spider *Spider) walk(sitemap *Sitemap, node *Node[Page]) {
 		}
 	}
 
+	// have the spider walk through each child page
 	for _, child := range node.Children() {
 		spider.walk(sitemap, child)
 	}
@@ -185,6 +159,35 @@ func (spider *Spider) step(n *html.Node) {
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
 		spider.step(c)
 	}
+}
+
+// Performs an HTTP request to get the current page.
+func (spider *Spider) fetch() {
+	// verify page URL contains valid URL
+	url, err := url.Parse(spider.current.page.URL())
+	if err != nil || url.Scheme == "" || url.Host == "" {
+		spider.app.logger.Info("invalid URL", "url", url)
+		return // skip the remaining code
+	}
+	// delay the http request
+	// TODO: This needs to be handled differently if the sitemap is built
+	// concurrently because time.Sleep() blocks the main goroutine.
+	delay := time.Duration(spider.app.options.delay) * time.Millisecond
+	time.Sleep(delay)
+	spider.current.response, err = spider.client.Do(spider.current.page.Request())
+	if err != nil {
+		spider.app.logger.Error(
+			"error getting the page",
+			"page", spider.current.page.URL(),
+			"error", err,
+		)
+		os.Exit(0)
+	}
+	spider.app.logger.Info(
+		"got the page",
+		"page", spider.current.page.URL(),
+		"status", spider.current.response.Status,
+	)
 }
 
 // Performs an action based on the commands and options the spider received
