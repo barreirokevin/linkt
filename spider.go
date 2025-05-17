@@ -297,6 +297,13 @@ func (spider *Spider) process() {
 				spider.current.response.Status,
 				Reset,
 				spider.current.page.URL())
+		case status == 999:
+			fmt.Printf(
+				"\t%s[%s Request Denied]%s\t%s\n",
+				Purple,
+				spider.current.response.Status,
+				Reset,
+				spider.current.page.URL())
 		}
 		if spider.app.options.json {
 			r := Record{
