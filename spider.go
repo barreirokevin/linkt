@@ -135,45 +135,71 @@ func (spider *Spider) walk(sitemap *Sitemap, node *Node[Page]) {
 // collect is recursively called in the walk function to visit each anchor, img, or
 // script tag on the spider.current.page.
 func (spider *Spider) collect(n *html.Node) {
-	// node is an anchor tag or a link tag
-	if n.Type == html.ElementNode && (n.Data == "a" || n.Data == "link") {
-		for _, a := range n.Attr { // iterate tag attributes
-			if a.Key == "href" { // attribute is an href
-				spider.store(a)
-				spider.app.logger.Info(
-					"collected a page",
-					"tag", n.Data,
-					"attribute", a.Key,
-					"page", a.Val,
-				)
-				break // skip the remaining attributes
-			} else if a.Key == "data-href" { // attribute is a data-href
-				spider.store(a)
-				spider.app.logger.Info(
-					"collected a page",
-					"tag", n.Data,
-					"attribute", a.Key,
-					"page", a.Val,
-				)
-				break // skip the remaining attributes
+	switch spider.app.command {
+
+	// stemap and screenshot command collects links only from anchor tags
+	case SITEMAP:
+		fallthrough
+	case SCREENSHOT:
+		// node is an anchor tag
+		if n.Type == html.ElementNode && n.Data == "a" {
+			for _, a := range n.Attr { // iterate tag attributes
+				if a.Key == "href" { // attribute is an href
+					spider.store(a)
+					spider.app.logger.Info(
+						"collected a page",
+						"tag", n.Data,
+						"attribute", a.Key,
+						"page", a.Val,
+					)
+					break // skip the remaining attributes
+				}
+			}
+		}
+
+	// test command collects links from anchor, link, img, and script tags
+	case TEST:
+		// node is an anchor tag or a link tag
+		if n.Type == html.ElementNode && (n.Data == "a" || n.Data == "link") {
+			for _, a := range n.Attr { // iterate tag attributes
+				if a.Key == "href" { // attribute is an href
+					spider.store(a)
+					spider.app.logger.Info(
+						"collected a page",
+						"tag", n.Data,
+						"attribute", a.Key,
+						"page", a.Val,
+					)
+					break // skip the remaining attributes
+				} else if a.Key == "data-href" { // attribute is a data-href
+					spider.store(a)
+					spider.app.logger.Info(
+						"collected a page",
+						"tag", n.Data,
+						"attribute", a.Key,
+						"page", a.Val,
+					)
+					break // skip the remaining attributes
+				}
+			}
+		}
+		// node is an img tag or script tag
+		if n.Type == html.ElementNode && (n.Data == "img" || n.Data == "script") {
+			for _, a := range n.Attr { // iterate tag attributes
+				if a.Key == "src" { // attribute is a src
+					spider.store(a)
+					spider.app.logger.Info(
+						"collected a page",
+						"tag", n.Data,
+						"attribute", a.Key,
+						"page", a.Val,
+					)
+					break // skip the remaining attributes
+				}
 			}
 		}
 	}
-	// node is an img tag or script tag
-	if n.Type == html.ElementNode && (n.Data == "img" || n.Data == "script") {
-		for _, a := range n.Attr { // iterate tag attributes
-			if a.Key == "src" { // attribute is a src
-				spider.store(a)
-				spider.app.logger.Info(
-					"collected a page",
-					"tag", n.Data,
-					"attribute", a.Key,
-					"page", a.Val,
-				)
-				break // skip the remaining attributes
-			}
-		}
-	}
+
 	// visit each link on the current page
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
 		spider.collect(c)
