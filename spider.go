@@ -306,9 +306,15 @@ func (spider *Spider) process() {
 				spider.current.page.URL())
 		}
 		if spider.app.options.json {
+			var status string
+			if spider.current.response.StatusCode == 999 {
+				status = "999 Request Denied"
+			} else {
+				status = spider.current.response.Status
+			}
 			r := Record{
 				URL:    spider.current.page.URL(),
-				Status: spider.current.response.Status,
+				Status: status,
 			}
 			spider.app.JSON = append(spider.app.JSON, r)
 		}
