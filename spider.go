@@ -137,7 +137,7 @@ func (spider *Spider) walk(sitemap *Sitemap, node *Node[Page]) {
 func (spider *Spider) collect(n *html.Node) {
 	switch spider.app.command {
 
-	// stemap and screenshot command collects links only from anchor tags
+	// sitemap and screenshot command collects links only from anchor tags
 	case SITEMAP:
 		fallthrough
 	case SCREENSHOT:
