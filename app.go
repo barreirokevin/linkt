@@ -26,13 +26,6 @@ type App struct {
 	JSON    []Record `json:"results"`
 }
 
-// Represents a record in the JSON file with test results.
-type Record struct {
-	URL         string `json:"url"`
-	Status      string `json:"status"`
-	RequestTime string `json:"requestTime"`
-}
-
 // Creates and returns a new app with the services needed to run it.
 func NewApp() *App {
 	command := ""

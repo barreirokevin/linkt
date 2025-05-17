@@ -334,11 +334,11 @@ func (spider *Spider) process() {
 			} else {
 				status = spider.current.response.Status
 			}
-			r := Record{
-				URL:         spider.current.page.URL(),
-				Status:      status,
-				RequestTime: spider.current.requestTime,
-			}
+			r := NewRecord(
+				spider.current.page.URL(),
+				status,
+				spider.current.requestTime,
+			)
 			spider.app.JSON = append(spider.app.JSON, r)
 		}
 
