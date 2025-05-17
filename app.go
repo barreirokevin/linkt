@@ -68,15 +68,7 @@ func (app *App) Run() {
 		case app.options.version:
 			app.Version()
 		default:
-			helpMsg := "\nUsage: linkt [options] <command> [<args>]\n\n"
-			helpMsg += "Commands:\n"
-			helpMsg += "\tsitemap\t\t\tBuild a sitemap with URL as the root.\n"
-			helpMsg += "\ttest\t\t\tRun a test against the URL.\n"
-			helpMsg += "\tscreenshot\t\tTake screenshots of all the pages on a site.\n"
-			helpMsg += "\thelp <command>\t\tDisplay help for a command.\n\n"
-			helpMsg += "Options:\n"
-			helpMsg += "\t-v, --version\t\tShow the version number.\n\n"
-			fmt.Print(helpMsg)
+			app.Help()
 		}
 	}
 	os.Exit(0)
@@ -147,15 +139,15 @@ func (app *App) Test() {
 	var err error
 	var file *os.File
 	switch {
-	case app.options.links:
-		if app.options.json && app.options.directory == "" {
-			helpMsg = "\nUsage: linkt --links --json --dir <path> [options] test <url>\n\n"
+	case app.options.json:
+		if app.options.directory == "" {
+			helpMsg = "\nUsage: linkt --json --dir <path> [options] test <url>\n\n"
 			helpMsg += "Options:\n"
 			helpMsg += "\t--delay <milliseconds>\t\tThe amount of time to delay each HTTP request.\n"
 			helpMsg += "\t--debug\t\t\tShow debug logs.\n\n"
 			fmt.Print(helpMsg)
 			os.Exit(0)
-		} else if app.options.json && app.options.directory != "" {
+		} else {
 			// create directory and file to store json file
 			if err := os.MkdirAll(app.options.directory, os.ModePerm); err != nil {
 				app.logger.Error("directory not found", "error", err)
@@ -195,16 +187,7 @@ func (app *App) Test() {
 		}
 		os.Exit(0)
 
-	case app.options.images:
-		if app.options.json && app.options.directory == "" {
-			helpMsg = "\nUsage: linkt --images --json --dir <path> [options] test <url>\n\n"
-			helpMsg += "Options:\n"
-			helpMsg += "\t--delay <milliseconds>\t\tThe amount of time to delay each HTTP request.\n"
-			helpMsg += "\t--debug\t\t\tShow debug logs.\n\n"
-			fmt.Print(helpMsg)
-			os.Exit(0)
-		}
-		fmt.Printf("%s[UNDER CONSTRUCTION]%s -i and --images is not available yet.\n\n", Orange, Reset)
+	default:
 		root, err := url.Parse(strings.TrimSuffix(app.url, "/"))
 		if err != nil || root.Scheme == "" || root.Host == "" {
 			app.logger.Error("missing or invalid URL", "url", app.url, "error", err)
@@ -212,18 +195,6 @@ func (app *App) Test() {
 		}
 		spider := NewSpider(app)
 		spider.Crawl(root)
-		os.Exit(0)
-
-	default:
-		helpMsg = "\nUsage: linkt [options] test <url>\n\n"
-		helpMsg += "Options:\n"
-		helpMsg += "\t-l, --links\t\tTest for broken links.\n"
-		helpMsg += "\t-i, --images\t\tTest for missing images.\n"
-		helpMsg += "\t--json\t\t\tSave the test results to a JSON file.\n"
-		helpMsg += "\t--dir <path>\t\tThe directory to store the JSON file.\n"
-		helpMsg += "\t--delay <milliseconds>\t\tThe amount of time to delay each HTTP request.\n"
-		helpMsg += "\t--debug\t\t\tShow debug logs.\n\n"
-		fmt.Print(helpMsg)
 		os.Exit(0)
 	}
 }
@@ -274,25 +245,25 @@ func (app *App) Help() {
 	case SITEMAP:
 		helpMsg = "\nUsage: linkt [options] sitemap <url>\n\n"
 		helpMsg += "Options:\n"
-		helpMsg += "\t--xml\t\t\tSave the sitemap to an XML file.\n"
-		helpMsg += "\t--print\t\t\tPrint the sitemap to standard output.\n"
-		helpMsg += "\t--dir <path>\t\tThe directory to store the XML file.\n"
+		helpMsg += "\t--xml\t\t\t\tSave the sitemap to an XML file.\n"
+		helpMsg += "\t--print\t\t\t\tPrint the sitemap to standard output.\n"
+		helpMsg += "\t--dir <path>\t\t\tThe directory to store the XML file.\n"
 		helpMsg += "\t--delay <milliseconds>\t\tThe amount of time to delay each HTTP request.\n"
-		helpMsg += "\t--debug\t\t\tShow debug logs.\n\n"
+		helpMsg += "\t--debug\t\t\t\tShow debug logs.\n\n"
 
 	case TEST:
 		helpMsg = "\nUsage: linkt [options] test <url>\n\n"
 		helpMsg += "Options:\n"
-		helpMsg += "\t-l, --links\t\tTest for broken links.\n"
-		helpMsg += "\t-i, --images\t\tTest for missing images.\n"
+		helpMsg += "\t--json\t\t\t\tSave the test results to a JSON file.\n"
+		helpMsg += "\t--dir <path>\t\t\tThe directory to store the JSON file.\n"
 		helpMsg += "\t--delay <milliseconds>\t\tThe amount of time to delay each HTTP request.\n"
-		helpMsg += "\t--debug\t\t\tShow debug logs.\n\n"
+		helpMsg += "\t--debug\t\t\t\tShow debug logs.\n\n"
 
 	case SCREENSHOT:
 		helpMsg = "\nUsage: linkt --dir <path> [options] screenshot <url>\n\n"
 		helpMsg += "Options:\n"
 		helpMsg += "\t--delay <milliseconds>\t\tThe amount of time to delay each HTTP request.\n"
-		helpMsg += "\t--debug\t\t\tShow debug logs.\n\n"
+		helpMsg += "\t--debug\t\t\t\tShow debug logs.\n\n"
 
 	case HELP:
 		fallthrough
@@ -300,7 +271,7 @@ func (app *App) Help() {
 		helpMsg = "\nUsage: linkt [options] <command> [<args>]\n\n"
 		helpMsg += "Commands:\n"
 		helpMsg += "\tsitemap\t\t\tBuild a sitemap with URL as the root.\n"
-		helpMsg += "\ttest\t\t\tRun a test against the URL.\n"
+		helpMsg += "\ttest\t\t\tTest for broken links in anchor, image, link, and script tags.\n"
 		helpMsg += "\tscreenshot\t\tTake screenshots of all the pages on a site.\n"
 		helpMsg += "\thelp <command>\t\tDisplay help for a command.\n\n"
 		helpMsg += "Options:\n"

@@ -17,7 +17,7 @@ Usage: linkt [options] <command> [<args>]
 
 Commands:
         sitemap                 Build a sitemap with URL as the root.
-        test                    Run a test against the URL.
+        test                    Test for broken links in anchor, image, link, and script tags.
         screenshot              Take screenshots of all the pages on a site.
         help <command>          Display help for a command.
 
