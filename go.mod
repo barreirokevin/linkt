@@ -1,4 +1,4 @@
-module github.com/barreiokevin
+module github.com/barreiokevin/linkt
 
 go 1.23.2
 
