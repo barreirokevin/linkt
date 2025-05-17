@@ -66,10 +66,9 @@ func (spider *Spider) Crawl(root *url.URL) *Sitemap {
 // walks through the elements on the page it builds a sitemap with the anchor tags it
 // encounters. The spider reports its work based on the action specified.
 func (spider *Spider) walk(sitemap *Sitemap, node *Node[Page]) {
-	// get page and execute an action
+	// fetch a page
 	spider.current.page = node.GetElement()
 	spider.fetch()
-	spider.execute()
 
 	// return early if node is external
 	// we don't need to scrape anchor tags from an external node
@@ -94,8 +93,8 @@ func (spider *Spider) walk(sitemap *Sitemap, node *Node[Page]) {
 		os.Exit(-1)
 	}
 
-	// step through the page
-	spider.step(doc)
+	// collect each url on the current page
+	spider.collect(doc)
 
 	// populate the tree with Set of internal and external links
 	for p, t := range spider.current.page.Links() {
@@ -133,31 +132,69 @@ func (spider *Spider) walk(sitemap *Sitemap, node *Node[Page]) {
 	}
 }
 
-// Step is recursively called in the walk function to visit each anchor tag on the spider.current.page.
-func (spider *Spider) step(n *html.Node) {
-	var link string
-	if n.Type == html.ElementNode && n.Data == "a" { // node is an anchor tag
-		for _, a := range n.Attr { // iterate anchor tag attributes
+// collect is recursively called in the walk function to visit each anchor, img, or
+// script tag on the spider.current.page.
+func (spider *Spider) collect(n *html.Node) {
+	// node is an anchor tag or a link tag
+	if n.Type == html.ElementNode && (n.Data == "a" || n.Data == "link") {
+		for _, a := range n.Attr { // iterate tag attributes
 			if a.Key == "href" { // attribute is an href
-				if strings.HasPrefix(a.Val, "/") { // href is an internal link
-					link = strings.TrimSuffix(strings.TrimSpace(a.Val), "/")
-					if !spider.visited.Contains(link) { // the link was not visited yet
-						(*spider.visited)[link] = Internal
-						spider.current.page.Links()[link] = Internal // add internal link to Set of links
-					}
-				} else if !strings.HasPrefix(a.Val, "#") { // href is an external link
-					link = strings.TrimSuffix(strings.TrimSpace(a.Val), "/")
-					if !spider.visited.Contains(link) { // the link was not visited yet
-						(*spider.visited)[link] = External
-						spider.current.page.Links()[link] = External
-					}
-				}
+				spider.store(a)
+				spider.app.logger.Info(
+					"collected a page",
+					"tag", n.Data,
+					"attribute", a.Key,
+					"page", a.Val,
+				)
+				break // skip the remaining attributes
+			} else if a.Key == "data-href" { // attribute is a data-href
+				spider.store(a)
+				spider.app.logger.Info(
+					"collected a page",
+					"tag", n.Data,
+					"attribute", a.Key,
+					"page", a.Val,
+				)
 				break // skip the remaining attributes
 			}
 		}
 	}
+	// node is an img tag or script tag
+	if n.Type == html.ElementNode && (n.Data == "img" || n.Data == "script") {
+		for _, a := range n.Attr { // iterate tag attributes
+			if a.Key == "src" { // attribute is a src
+				spider.store(a)
+				spider.app.logger.Info(
+					"collected a page",
+					"tag", n.Data,
+					"attribute", a.Key,
+					"page", a.Val,
+				)
+				break // skip the remaining attributes
+			}
+		}
+	}
+	// visit each link on the current page
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		spider.step(c)
+		spider.collect(c)
+	}
+}
+
+// The spider will store a link in temporary storage as it crawls.
+func (spider *Spider) store(attr html.Attribute) {
+	var link string
+	if strings.HasPrefix(attr.Val, "/") { // link is internal
+		link = strings.TrimSuffix(strings.TrimSpace(attr.Val), "/")
+		if !spider.visited.Contains(link) { // the link was not visited yet
+			(*spider.visited)[link] = Internal
+			spider.current.page.Links()[link] = Internal // add internal link to Set of links
+		}
+	} else if !strings.HasPrefix(attr.Val, "#") { // link is external
+		link = strings.TrimSuffix(strings.TrimSpace(attr.Val), "/")
+		if !spider.visited.Contains(link) { // the link was not visited yet
+			(*spider.visited)[link] = External
+			spider.current.page.Links()[link] = External // add external link to Set of links
+		}
 	}
 }
 
@@ -184,68 +221,63 @@ func (spider *Spider) fetch() {
 		os.Exit(0)
 	}
 	spider.app.logger.Info(
-		"got the page",
+		"fetched a page",
 		"page", spider.current.page.URL(),
 		"status", spider.current.response.Status,
 	)
+	// process the response
+	spider.process()
 }
 
 // Performs an action based on the commands and options the spider received
 // when the app was executed.
-func (spider *Spider) execute() {
+func (spider *Spider) process() {
 	switch spider.app.command {
 	case TEST:
-		switch {
-		case spider.app.options.links:
-			// print link test result to standard out
-			switch status := spider.current.response.StatusCode; {
-			case status >= 100 && status <= 199:
-				fmt.Printf(
-					"\t%s[%s]%s\t%s\n",
-					Blue,
-					spider.current.response.Status,
-					Reset,
-					spider.current.page.URL())
-			case status >= 200 && status <= 299:
-				fmt.Printf(
-					"\t%s[%s]%s\t%s\n",
-					Green,
-					spider.current.response.Status,
-					Reset,
-					spider.current.page.URL())
-			case status >= 300 && status <= 399:
-				fmt.Printf(
-					"\t%s[%s]%s\t%s\n",
-					Yellow,
-					spider.current.response.Status,
-					Reset,
-					spider.current.page.URL())
-			case status >= 400 && status <= 499:
-				fmt.Printf(
-					"\t%s[%s]%s\t%s\n",
-					Red,
-					spider.current.response.Status,
-					Reset,
-					spider.current.page.URL())
-			case status >= 500 && status <= 599:
-				fmt.Printf(
-					"\t%s[%s]%s\t%s\n",
-					Red,
-					spider.current.response.Status,
-					Reset,
-					spider.current.page.URL())
+		// print link test result to standard out
+		switch status := spider.current.response.StatusCode; {
+		case status >= 100 && status <= 199:
+			fmt.Printf(
+				"\t%s[%s]%s\t%s\n",
+				Blue,
+				spider.current.response.Status,
+				Reset,
+				spider.current.page.URL())
+		case status >= 200 && status <= 299:
+			fmt.Printf(
+				"\t%s[%s]%s\t%s\n",
+				Green,
+				spider.current.response.Status,
+				Reset,
+				spider.current.page.URL())
+		case status >= 300 && status <= 399:
+			fmt.Printf(
+				"\t%s[%s]%s\t%s\n",
+				Yellow,
+				spider.current.response.Status,
+				Reset,
+				spider.current.page.URL())
+		case status >= 400 && status <= 499:
+			fmt.Printf(
+				"\t%s[%s]%s\t%s\n",
+				Red,
+				spider.current.response.Status,
+				Reset,
+				spider.current.page.URL())
+		case status >= 500 && status <= 599:
+			fmt.Printf(
+				"\t%s[%s]%s\t%s\n",
+				Red,
+				spider.current.response.Status,
+				Reset,
+				spider.current.page.URL())
+		}
+		if spider.app.options.json {
+			r := Record{
+				URL:    spider.current.page.URL(),
+				Status: spider.current.response.Status,
 			}
-			if spider.app.options.json {
-				r := Record{
-					URL:    spider.current.page.URL(),
-					Status: spider.current.response.Status,
-				}
-				spider.app.JSON = append(spider.app.JSON, r)
-			}
-
-		case spider.app.options.images:
-			// TODO:
-
+			spider.app.JSON = append(spider.app.JSON, r)
 		}
 
 	case SCREENSHOT:
