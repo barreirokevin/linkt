@@ -28,8 +28,9 @@ type App struct {
 
 // Represents a record in the JSON file with test results.
 type Record struct {
-	URL    string `json:"url"`
-	Status string `json:"status"`
+	URL         string `json:"url"`
+	Status      string `json:"status"`
+	RequestTime string `json:"requestTime"`
 }
 
 // Creates and returns a new app with the services needed to run it.

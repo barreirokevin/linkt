@@ -22,8 +22,9 @@ type Spider struct {
 	app     *App
 	visited *Set[string, int]
 	current struct {
-		page     Page
-		response *http.Response
+		page        Page
+		response    *http.Response
+		requestTime string
 	}
 }
 
@@ -37,8 +38,9 @@ func NewSpider(app *App) *Spider {
 		app:     app,
 		visited: &Set[string, int]{},
 		current: struct {
-			page     Page
-			response *http.Response
+			page        Page
+			response    *http.Response
+			requestTime string
 		}{},
 	}
 }
@@ -233,11 +235,12 @@ func (spider *Spider) fetch() {
 		return // skip the remaining code
 	}
 	// delay the http request
-	// TODO: This needs to be handled differently if the sitemap is built
-	// concurrently because time.Sleep() blocks the main goroutine.
 	delay := time.Duration(spider.app.options.delay) * time.Millisecond
 	time.Sleep(delay)
+	// start timer to get request time
+	start := time.Now()
 	spider.current.response, err = spider.client.Do(spider.current.page.Request())
+	spider.current.requestTime = fmt.Sprintf("%d ms", time.Since(start).Milliseconds())
 	if err != nil {
 		spider.app.logger.Error(
 			"error getting the page",
@@ -250,6 +253,7 @@ func (spider *Spider) fetch() {
 		"fetched a page",
 		"page", spider.current.page.URL(),
 		"status", spider.current.response.Status,
+		"request time", spider.current.requestTime,
 	)
 	// process the response
 	spider.process()
@@ -264,44 +268,62 @@ func (spider *Spider) process() {
 		switch status := spider.current.response.StatusCode; {
 		case status >= 100 && status <= 199:
 			fmt.Printf(
-				"\t%s[%s]%s\t%s\n",
+				"\t%s[%s]\t%s%s %s%s\t%s\n",
 				Blue,
 				spider.current.response.Status,
+				Reset,
+				Faint,
+				spider.current.requestTime,
 				Reset,
 				spider.current.page.URL())
 		case status >= 200 && status <= 299:
 			fmt.Printf(
-				"\t%s[%s]%s\t%s\n",
+				"\t%s[%s]\t\t%s%s %s%s\t%s\n",
 				Green,
 				spider.current.response.Status,
+				Reset,
+				Faint,
+				spider.current.requestTime,
 				Reset,
 				spider.current.page.URL())
 		case status >= 300 && status <= 399:
 			fmt.Printf(
-				"\t%s[%s]%s\t%s\n",
+				"\t%s[%s]\t%s%s %s%s\t%s\n",
 				Yellow,
 				spider.current.response.Status,
+				Reset,
+				Faint,
+				spider.current.requestTime,
 				Reset,
 				spider.current.page.URL())
 		case status >= 400 && status <= 499:
 			fmt.Printf(
-				"\t%s[%s]%s\t%s\n",
+				"\t%s[%s]\t\t%s%s %s%s\t%s\n",
 				Red,
 				spider.current.response.Status,
+				Reset,
+				Faint,
+				spider.current.requestTime,
 				Reset,
 				spider.current.page.URL())
 		case status >= 500 && status <= 599:
 			fmt.Printf(
-				"\t%s[%s]%s\t%s\n",
+				"\t%s[%s]\t%s%s %s%s\t%s\n",
 				Red,
 				spider.current.response.Status,
+				Reset,
+				Faint,
+				spider.current.requestTime,
 				Reset,
 				spider.current.page.URL())
 		case status == 999:
 			fmt.Printf(
-				"\t%s[%s Request Denied]%s\t%s\n",
+				"\t%s[%s Request Denied]\t%s%s %s%s\t%s\n",
 				Purple,
 				spider.current.response.Status,
+				Reset,
+				Faint,
+				spider.current.requestTime,
 				Reset,
 				spider.current.page.URL())
 		}
@@ -313,8 +335,9 @@ func (spider *Spider) process() {
 				status = spider.current.response.Status
 			}
 			r := Record{
-				URL:    spider.current.page.URL(),
-				Status: status,
+				URL:         spider.current.page.URL(),
+				Status:      status,
+				RequestTime: spider.current.requestTime,
 			}
 			spider.app.JSON = append(spider.app.JSON, r)
 		}
