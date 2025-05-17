@@ -33,20 +33,25 @@ Options:
    git clone https://github.com/barreirokevin/linkt.git
    ```
 
-1. Navigate to the linkt directroy:
+1. Navigate to the source directroy:
 
    ```
    cd <path-to-linkt>
    ```
 
-1. Build the source code:
+1. Execute make command:
 
    ```
-   go build -o bin/linkt *.go
+   Usage: make <command>
+   
+   Commands:
+         install         Install linkt globally.
+         uninstall       Uninstall linkt globally.
+         help            Display help for a command.
    ```
 
 1. Execute linkt:
 
    ```
-   ./bin/linkt
+   linkt
    ```
