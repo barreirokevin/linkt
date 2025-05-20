@@ -175,9 +175,7 @@ func (app *App) Test() {
 				app.logger.Error("error encoding the test results into JSON", "error", err)
 				os.Exit(1)
 			}
-			file.WriteString(fmt.Sprintf(`{"root":"%s","results":`, root.String()))
 			file.Write(data)
-			file.WriteString("}")
 		}
 		os.Exit(0)
 

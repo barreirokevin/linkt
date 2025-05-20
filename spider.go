@@ -318,7 +318,7 @@ func (spider *Spider) process() {
 			)
 		case status == 999:
 			fmt.Printf(
-				"\n%s\n\tStatus\t\t\t%s%s%s\n\tRequest Time\t\t%s%s%s\n\tParent URL\t\t%s%s%s\n",
+				"\n%s\n\tStatus\t\t\t%s%s Request Denied%s\n\tRequest Time\t\t%s%s%s\n\tParent URL\t\t%s%s%s\n",
 				spider.current.request.URL.String(),
 				Purple,
 				spider.current.response.Status,
