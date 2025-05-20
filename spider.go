@@ -21,6 +21,7 @@ type Spider struct {
 	client  *http.Client
 	app     *App
 	visited *Set[string, int]
+	sitemap *Sitemap
 	current Page
 }
 
@@ -33,17 +34,18 @@ func NewSpider(app *App) *Spider {
 		client:  c,
 		app:     app,
 		visited: &Set[string, int]{},
+		sitemap: nil,
 		current: Page{},
 	}
 }
 
 // Enables the spider to crawl starting from the root URL.
 func (spider *Spider) Crawl(root *url.URL) *Sitemap {
-	sitemap := NewSitemap(spider.app.logger)
+	spider.sitemap = NewSitemap(spider.app.logger)
 	page := *NewPage(root)
 	page.kind = Internal
 	page.parentURL = root.String()
-	_, err := sitemap.AddRoot(page)
+	_, err := spider.sitemap.AddRoot(page)
 	if err != nil {
 		spider.app.logger.Error(
 			"error adding root page to the sitemap",
@@ -53,8 +55,8 @@ func (spider *Spider) Crawl(root *url.URL) *Sitemap {
 		os.Exit(-1)
 	}
 	// start recursively building the sitemap
-	spider.walk(sitemap, sitemap.Root())
-	return sitemap
+	spider.walk(spider.sitemap, spider.sitemap.Root())
+	return spider.sitemap
 }
 
 // Enables the spider to recursively walk through the elements on a page. As the spider
@@ -69,12 +71,6 @@ func (spider *Spider) walk(sitemap *Sitemap, node *Node[Page]) {
 	// we don't need to scrape anchor tags from an external node
 	if spider.current.kind != Internal {
 		return
-	}
-
-	// add root page as internal link to Set of links
-	if reflect.DeepEqual(sitemap.Root(), spider.current) {
-		(*spider.visited)[spider.current.request.URL.String()] = Internal
-		spider.current.links[spider.current.request.URL.String()] = Internal
 	}
 
 	// parse page to get tree
@@ -202,6 +198,13 @@ func (spider *Spider) collect(n *html.Node) {
 
 // The spider will store a link in temporary storage as it crawls.
 func (spider *Spider) store(attr html.Attribute) {
+	// store root page as internal link to Set of links
+	if reflect.DeepEqual(spider.sitemap.Root(), spider.current) {
+		(*spider.visited)[spider.current.request.URL.String()] = Internal
+		spider.current.links[spider.current.request.URL.String()] = Internal
+	}
+
+	// store links on a page
 	var link string
 	if strings.HasPrefix(attr.Val, "/") { // link is internal
 		link = strings.TrimSuffix(strings.TrimSpace(attr.Val), "/")
