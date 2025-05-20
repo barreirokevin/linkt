@@ -17,10 +17,13 @@ type Page struct {
 	request *http.Request
 	// set of links on this Page
 	links Set[string, int]
-	// The type of a apge, i.e. whther it is an internal page, and external
+	// The kind of a apge, i.e. whther it is an internal page, and external
 	// page, or unknown. Internal is equivlant to integer 0, External is
 	// equivalent to integer 1, and Unknown is equivalent to integer -1.
-	t int
+	kind        int
+	response    *http.Response
+	requestTime string
+	parentURL   string
 }
 
 // Returns a new page.
@@ -31,33 +34,6 @@ func NewPage(link *url.URL) *Page {
 			URL:    link,
 		},
 		links: Set[string, int]{},
-		t:     Unknown,
+		kind:  Unknown,
 	}
-}
-
-// Sets the type of page to unknown, internal or external, i.e. -1, 0,
-// and 1, respectively,
-func (p *Page) SetType(t int) {
-	p.t = t
-}
-
-// Returns the type of page, i.e. -1, 0, or 1. Each value represents
-// unknown, internal, or external, respectively,
-func (p Page) Type() int {
-	return p.t
-}
-
-// Returns a Set of links in this page.
-func (p Page) Links() Set[string, int] {
-	return p.links
-}
-
-// Returns the HTTP request to GET this page.
-func (p Page) Request() *http.Request {
-	return p.request
-}
-
-// Returns a string representing the URL of this Page.
-func (p Page) URL() string {
-	return p.request.URL.String()
 }

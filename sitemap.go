@@ -28,29 +28,29 @@ func (s *Sitemap) String() string {
 	preorderIndent = func(s *Sitemap, n *Node[Page], d int) {
 		if reflect.DeepEqual(s.Root(), n) {
 			// the current node is the root
-			str += fmt.Sprintf("%s\n", n.GetElement().URL())
+			str += fmt.Sprintf("%s\n", n.GetElement().request.URL.String())
 
 		} else if len(n.Children()) == 0 &&
 			reflect.DeepEqual(n.GetParent().Children()[len(n.GetParent().Children())-1], n) {
 			// the current node is the last child
 			indent := strings.Repeat(" ", d*4)
 			if d > 0 && d%2 == 0 {
-				str += fmt.Sprintf("│%s └─── %+v\n", indent, n.GetElement().URL())
+				str += fmt.Sprintf("│%s └─── %+v\n", indent, n.GetElement().request.URL.String())
 			} else if d > 0 && d%2 != 0 {
-				str += fmt.Sprintf("│%s└─── %+v\n", indent, n.GetElement().URL())
+				str += fmt.Sprintf("│%s└─── %+v\n", indent, n.GetElement().request.URL.String())
 			} else {
-				str += fmt.Sprintf("%s└─── %+v\n", indent, n.GetElement().URL())
+				str += fmt.Sprintf("%s└─── %+v\n", indent, n.GetElement().request.URL.String())
 			}
 
 		} else {
 			// the current node is not the last child
 			indent := strings.Repeat(" ", d*4)
 			if d > 0 && d%2 == 0 {
-				str += fmt.Sprintf("│%s ├─── %+v\n", indent, n.GetElement().URL())
+				str += fmt.Sprintf("│%s ├─── %+v\n", indent, n.GetElement().request.URL.String())
 			} else if d > 0 && d%2 != 0 {
-				str += fmt.Sprintf("│%s├─── %+v\n", indent, n.GetElement().URL())
+				str += fmt.Sprintf("│%s├─── %+v\n", indent, n.GetElement().request.URL.String())
 			} else {
-				str += fmt.Sprintf("%s├─── %+v\n", indent, n.GetElement().URL())
+				str += fmt.Sprintf("%s├─── %+v\n", indent, n.GetElement().request.URL.String())
 			}
 		}
 
@@ -95,7 +95,7 @@ func (s *Sitemap) XML(dir string) {
 	file.WriteString(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`)
 	file.WriteString("\n")
 	s.Preorder(func(c *Node[Page]) {
-		e := url{Link: c.GetElement().URL()}
+		e := url{Link: c.GetElement().request.URL.String()}
 		if !allLinks.Contains(e) {
 			allLinks[e] = 0
 			data, err := xml.MarshalIndent(e, "", "  ")
