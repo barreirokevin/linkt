@@ -90,25 +90,22 @@ func (s *Sitemap) XML(dir string) {
 		Link string `xml:"loc"`
 	}
 	allLinks := Set[url, int]{} // Set prevents duplicate links
-	s.Preorder(func(s *Node[Page]) {
-		for l, _ := range s.GetElement().Links() {
-			e := url{Link: l}
-			allLinks[e] = 0
-		}
-	})
-
 	// write each entry to the XML file
 	file.WriteString(xml.Header)
 	file.WriteString(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`)
 	file.WriteString("\n")
-	for l, _ := range allLinks {
-		data, err := xml.MarshalIndent(l, "", "  ")
-		if err != nil {
-			s.logger.Error("could not marshal link to XML", "error", err)
-			os.Exit(0)
+	s.Preorder(func(c *Node[Page]) {
+		e := url{Link: c.GetElement().URL()}
+		if !allLinks.Contains(e) {
+			allLinks[e] = 0
+			data, err := xml.MarshalIndent(e, "", "  ")
+			if err != nil {
+				s.logger.Error("could not marshal link to XML", "error", err)
+				os.Exit(0)
+			}
+			file.Write(data)
+			file.WriteString("\n")
 		}
-		file.Write(data)
-		file.WriteString("\n")
-	}
+	})
 	file.WriteString("</urlset>")
 }

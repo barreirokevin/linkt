@@ -111,7 +111,8 @@ func (spider *Spider) walk(sitemap *Sitemap, node *Node[Page]) {
 			}
 			page := *NewPage(link)
 			page.SetType(Internal)
-			sitemap.AddChild(node, page)
+			child := sitemap.AddChild(node, page)
+			spider.walk(sitemap, child)
 
 		} else { // link is external
 			link, err := url.Parse(p)
@@ -124,13 +125,9 @@ func (spider *Spider) walk(sitemap *Sitemap, node *Node[Page]) {
 			}
 			page := *NewPage(link)
 			page.SetType(External)
-			sitemap.AddChild(node, page)
+			child := sitemap.AddChild(node, page)
+			spider.walk(sitemap, child)
 		}
-	}
-
-	// have the spider walk through each child page
-	for _, child := range node.Children() {
-		spider.walk(sitemap, child)
 	}
 }
 
