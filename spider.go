@@ -342,6 +342,7 @@ func (spider *Spider) process() {
 				spider.current.request.URL.String(),
 				status,
 				spider.current.requestTime,
+				spider.current.parentURL,
 			)
 			spider.app.JSON = append(spider.app.JSON, r)
 		}
